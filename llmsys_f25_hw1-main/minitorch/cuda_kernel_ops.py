@@ -122,10 +122,25 @@ class CudaKernelOps(TensorOps):
             lib.tensorZip.restype = None
 
             # BEGIN ASSIGN2_2
-            # TODO
             # 1. Call the tensorZip function implemented in CUDA
-
-            raise NotImplementedError("Zip Function Not Implemented Yet")
+            lib.tensorZip(
+                out._tensor._storage,
+                out._tensor._shape.astype(np.int32),
+                out._tensor._strides.astype(np.int32),
+                out.size,
+                len(out.shape),
+                a._tensor._storage,
+                a._tensor._shape.astype(np.int32),
+                a._tensor._strides.astype(np.int32),
+                a.size,
+                len(a.shape),
+                b._tensor._storage,
+                b._tensor._shape.astype(np.int32),
+                b._tensor._strides.astype(np.int32),
+                b.size,
+                len(b.shape),
+                fn_id
+            )
             # END ASSIGN2_2
             
             return out
@@ -162,10 +177,20 @@ class CudaKernelOps(TensorOps):
             lib.tensorReduce.restype = None
 
             # BEGIN ASSIGN2_3
-            # TODO
             # 1. Call the tensorReduce function implemented in CUDA
-            
-            raise NotImplementedError("Reduce Function Not Implemented Yet")
+            lib.tensorReduce(
+                out._tensor._storage,
+                out._tensor._shape.astype(np.int32),
+                out._tensor._strides.astype(np.int32),
+                out.size,
+                a._tensor._storage,
+                a._tensor._shape.astype(np.int32),
+                a._tensor._strides.astype(np.int32),
+                dim,
+                reduce_value,
+                len(a.shape),
+                fn_id
+            )
             # END ASSIGN2_3
             
             return out
@@ -230,10 +255,21 @@ class CudaKernelOps(TensorOps):
         assert len(b._tensor._strides) == 3
 
         # BEGIN ASSIGN2_4
-        # TODO
         # 1. Call the Matmul function implemented in CUDA
-
-        raise NotImplementedError("Matrix Multiply Function Not Implemented Yet")
+        lib.MatrixMultiply(
+            out._tensor._storage,
+            out._tensor._shape.astype(np.int32),
+            out._tensor._strides.astype(np.int32),
+            a._tensor._storage,
+            a._tensor._shape.astype(np.int32),
+            a._tensor._strides.astype(np.int32),
+            b._tensor._storage,
+            b._tensor._shape.astype(np.int32),
+            b._tensor._strides.astype(np.int32),
+            out.shape[0],  # batch_size
+            out.shape[1],  # m
+            out.shape[2]   # p
+        )
         # END ASSIGN2_4
         
         # Undo 3d if we added it.
