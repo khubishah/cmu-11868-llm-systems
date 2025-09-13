@@ -1,1 +1,8 @@
 .DS_Store
+llmsys_f25_hw1-main/.hypothesis/*
+llmsys_f25_hw1-main/.pytest_cache/*
+
+llmsys_f25_hw1-main/minitorch/__pycache__/*
+llmsys_f25_hw1-main/minitorch/cuda_kernels/*
+llmsys_f25_hw1-main/tests/__pycache__/*
+llmsys_f25_hw1-main/venv/*
