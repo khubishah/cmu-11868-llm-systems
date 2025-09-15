@@ -101,9 +101,28 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
         Non-constant Variables in topological order starting from the right.
     """
     # BEGIN ASSIGN1_1
-    # TODO
+    visited = set()
+    result = []
     
-    raise NotImplementedError("Task Autodiff Not Implemented Yet")
+    def dfs(var):
+        # Skip if already visited or if it's a constant
+        if var.unique_id in visited or var.is_constant():
+            return
+        
+        # Mark as visited
+        visited.add(var.unique_id)
+        
+        # Visit all parents first (depth-first, post-order traversal)
+        for parent in var.parents:
+            dfs(parent)
+        
+        # Add current variable to result after visiting all parents
+        result.append(var)
+    
+    # Start DFS from the rightmost variable
+    dfs(variable)
+    # Return in reverse order so rightmost variable comes first
+    return list(reversed(result))
     # END ASSIGN1_1
 
 
@@ -119,9 +138,31 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
     # BEGIN ASSIGN1_1
-    # TODO
-   
-    raise NotImplementedError("Task Autodiff Not Implemented Yet")
+    # Get the topological order of variables
+    ordered_vars = topological_sort(variable)
+    
+    # Dictionary to store accumulated gradients for each variable
+    gradients = {}
+    gradients[variable.unique_id] = deriv
+    
+    # Process variables in topological order (output to inputs)
+    for var in ordered_vars:
+        # Only process if we have a gradient for this variable
+        if var.unique_id in gradients:
+            current_grad = gradients[var.unique_id]
+            
+            # If it's a leaf node, accumulate the gradient
+            if var.is_leaf():
+                var.accumulate_derivative(current_grad)
+            else:
+                # Only apply chain rule for non-leaf variables
+                for parent, parent_grad in var.chain_rule(current_grad):
+                    # Accumulate gradients for parent variables
+                    if parent.unique_id not in gradients:
+                        gradients[parent.unique_id] = parent_grad
+                    else:
+                        # Add to existing gradient (for variables with multiple children)
+                        gradients[parent.unique_id] = gradients[parent.unique_id] + parent_grad
     # END ASSIGN1_1
 
 
