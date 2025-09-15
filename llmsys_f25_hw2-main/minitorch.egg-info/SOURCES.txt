@@ -8,4 +8,3 @@ minitorch.egg-info/dependency_links.txt
 minitorch.egg-info/top_level.txt
 tests/test_neural_network.py
 tests/test_tensor_autodiff.py
-tests/test_tensor_general.py
