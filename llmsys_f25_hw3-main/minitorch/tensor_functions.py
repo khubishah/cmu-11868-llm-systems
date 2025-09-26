@@ -381,6 +381,12 @@ class View(Function):
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
         (original,) = ctx.saved_values
+        # Ensure grad_output is contiguous before using Tensor.make
+        # since Tensor.make assumes contiguous storage but grad_output
+        # may be non-contiguous after View followed by Permute
+        if not grad_output._tensor.is_contiguous():
+            grad_output = grad_output.contiguous()
+        
         return (
             minitorch.Tensor.make(
                 grad_output._tensor._storage, original, backend=grad_output.backend

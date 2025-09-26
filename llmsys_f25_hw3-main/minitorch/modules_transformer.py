@@ -104,9 +104,9 @@ class MultiHeadAttention(Module):
         
         # Step 2: Reshape for multi-head attention (README: unravel to Q ∈ R^(B×S×h×D_h))
         # Split n_embd into n_head * attn_hidden_dim
-        q = q.view(batch_size, seq_len, self.n_head, self.attn_hidden_dim)  # (B, S, h, D_h)
-        k = k.view(batch_size, seq_len, self.n_head, self.attn_hidden_dim)  # (B, S, h, D_h)
-        v = v.view(batch_size, seq_len, self.n_head, self.attn_hidden_dim)  # (B, S, h, D_h)
+        q = q.view(batch_size, seq_len, self.n_head, self.attn_hidden_dim).contiguous()  # (B, S, h, D_h)
+        k = k.view(batch_size, seq_len, self.n_head, self.attn_hidden_dim).contiguous()  # (B, S, h, D_h)
+        v = v.view(batch_size, seq_len, self.n_head, self.attn_hidden_dim).contiguous()  # (B, S, h, D_h)
         
         # Step 3: Permute to get (README: Q ∈ R^(B×S×h×D_h) → Q ∈ R^(B×h×S×D_h))
         q = q.permute(0, 2, 1, 3)  # (batch_size, n_head, seq_len, attn_hidden_dim)
@@ -137,38 +137,62 @@ class MultiHeadAttention(Module):
         result = None
         
         ### BEGIN ASSIGN3_3
-        # Follow README formula exactly: softmax((Q_i K_i^T)/√D_h + M) V_i
+        # Use simple 2D operations for maximum numerical stability
+        B, H, S, Dh = batch_size, num_head, queries_len, q_dim
         
-        # Step 1: Compute Q_i K_i^T for each head i (README formula)
-        # q: (batch_size, num_heads, seq_len, attn_hidden_dim)
-        # kT: (batch_size, num_heads, attn_hidden_dim, seq_len)
-        # Result: (batch_size, num_heads, seq_len, seq_len)
-        attention_scores = q @ kT
-        
-        # Step 2: Scale by 1/√D_h as per README formula (√D_h where D_h = attn_hidden_dim)
-        scale_factor = (q_dim ** 0.5)  # q_dim = attn_hidden_dim 
-        attention_scores = attention_scores / scale_factor
-        
-        # Step 3: Add causal mask M if enabled (README: + M)
-        if self.causal:
-            mask = self.create_causal_mask(queries_len)  # Shape: (1, 1, seq_len, seq_len)
-            attention_scores = attention_scores + mask  # Broadcasting: (B,H,S,S) + (1,1,S,S)
-        
-        # Step 4: Apply softmax (README: softmax(...))
-        attention_probs = softmax(attention_scores, dim=3)  # Softmax over last dimension (seq_len)
-        
-        # Step 5: Multiply by V_i (README: ... V_i)
-        # attention_probs: (batch_size, num_heads, seq_len, seq_len) 
-        # v: (batch_size, num_heads, seq_len, attn_hidden_dim)
-        # Result: (batch_size, num_heads, seq_len, attn_hidden_dim)
-        attn_output = attention_probs @ v
-        
-        # Step 6: Permute and reshape to combine heads (README: A ∈ R^(B×h×S×D_h) → A ∈ R^(B×S×h×D_h) → A ∈ R^(B×S×D))
-        # Before: A ∈ R^(B×h×S×D_h)
-        # After permute: A ∈ R^(B×S×h×D_h) 
-        attn_output = attn_output.permute(0, 2, 1, 3).contiguous()  # (batch_size, seq_len, num_heads, attn_hidden_dim)
-        # After reshape: A ∈ R^(B×S×D) where D = h × D_h = n_embd
-        result = attn_output.view(batch_size, queries_len, self.n_embd)  # (batch_size, seq_len, n_embd)
+        # For single head case (H=1), use simple 2D operations 
+        if H == 1:
+            # Extract 2D tensors: (B, S, Dh) - remove head dimension
+            q_2d = q.contiguous().view(B, S, Dh)  # (B, S, Dh) 
+            kT_2d = kT.contiguous().view(B, Dh, S)  # (B, Dh, S)
+            v_2d = v.contiguous().view(B, S, Dh)  # (B, S, Dh)
+            
+            # Simple 2D attention: (B, S, S)
+            attention_scores = q_2d @ kT_2d
+            attention_scores = attention_scores / (Dh ** 0.5)
+            
+            # Apply causal mask if enabled
+            if self.causal:
+                # Create simple 2D mask
+                mask_4d = self.create_causal_mask(S)  # (1, 1, S, S)
+                mask_2d = mask_4d.view(S, S)  # (S, S)
+                attention_scores = attention_scores + mask_2d
+            
+            # Apply softmax: (B, S, S)
+            attention_probs = softmax(attention_scores, dim=-1)
+            
+            # Apply to values: (B, S, Dh)
+            result = attention_probs @ v_2d
+            
+        else:
+            # Multi-head case: use 3D flattened approach
+            # Flatten batch and head dimensions: (B, H, S, Dh) -> (B*H, S, Dh)
+            q_flat = q.contiguous().view(B * H, S, Dh)
+            v_flat = v.contiguous().view(B * H, S, Dh)
+            kT_flat = kT.contiguous().view(B * H, Dh, S)
+
+            # Compute attention scores using 3D operations: (B*H, S, S)
+            attention_scores = q_flat @ kT_flat
+            attention_scores = attention_scores / (Dh ** 0.5)
+
+            # Apply causal mask if enabled
+            if self.causal:
+                mask_4d = self.create_causal_mask(S)  # (1, 1, S, S)
+                mask_3d = mask_4d.view(1, S, S)  # Remove one singleton dimension
+                attention_scores = attention_scores + mask_3d
+
+            # Apply softmax along the last dimension (keys)
+            attention_probs = softmax(attention_scores, dim=-1)
+
+            # Apply attention to values: (B*H, S, Dh)
+            ctx_flat = attention_probs @ v_flat
+
+            # Reshape back to multi-head format: (B*H, S, Dh) -> (B, H, S, Dh)
+            ctx = ctx_flat.view(B, H, S, Dh).contiguous()
+
+            # Merge heads: (B, H, S, Dh) -> (B, S, H*Dh)
+            attn_output = ctx.permute(0, 2, 1, 3).contiguous()
+            result = attn_output.view(B, S, self.n_embd)
         ### END ASSIGN3_3
 
         return result
