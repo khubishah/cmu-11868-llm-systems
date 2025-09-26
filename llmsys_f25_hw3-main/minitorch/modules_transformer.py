@@ -159,7 +159,10 @@ class MultiHeadAttention(Module):
                 attention_scores = attention_scores + mask_2d
             
             # Apply softmax: (B, S, S)
-            attention_probs = softmax(attention_scores, dim=-1)
+            softmax_dim = -1
+            if softmax_dim < 0:
+                softmax_dim = len(attention_scores.shape) + softmax_dim
+            attention_probs = softmax(attention_scores, dim=softmax_dim)
             
             # Apply to values: (B, S, Dh)
             result = attention_probs @ v_2d
@@ -182,7 +185,10 @@ class MultiHeadAttention(Module):
                 attention_scores = attention_scores + mask_3d
 
             # Apply softmax along the last dimension (keys)
-            attention_probs = softmax(attention_scores, dim=-1)
+            softmax_dim = -1
+            if softmax_dim < 0:
+                softmax_dim = len(attention_scores.shape) + softmax_dim
+            attention_probs = softmax(attention_scores, dim=softmax_dim)
 
             # Apply attention to values: (B*H, S, Dh)
             ctx_flat = attention_probs @ v_flat

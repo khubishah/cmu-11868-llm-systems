@@ -106,10 +106,6 @@ def softmax(input: Tensor, dim: int) -> Tensor:
     Returns:
         softmax tensor
     """
-    # Handle negative dimensions
-    if dim < 0:
-        dim = len(input.shape) + dim
-    
     e = (input - Max.apply(input, tensor([dim]))).exp()
     partition = e.sum(dim=dim)
     return e / partition
