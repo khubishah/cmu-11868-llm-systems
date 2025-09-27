@@ -106,7 +106,7 @@ def softmax(input: Tensor, dim: int) -> Tensor:
     Returns:
         softmax tensor
     """
-    e = (input - Max.apply(input, tensor([dim]))).exp()
+    e = (input - Max.apply(input, tensor([dim], backend=input.backend))).exp()
     partition = e.sum(dim=dim)
     return e / partition
 
@@ -127,7 +127,7 @@ def logsoftmax(input: Tensor, dim: int) -> Tensor:
          log of softmax tensor
     """
     e = input
-    mx = Max.apply(e, tensor([dim]))
+    mx = Max.apply(e, tensor([dim], backend=input.backend))
     lse = (e - mx).exp().sum(dim=dim).log() + mx
     return e - lse
 
