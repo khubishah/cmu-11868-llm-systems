@@ -314,12 +314,13 @@ def generate(
             logits = model(input_tensor)  # Shape: (1, seq_len, vocab_size)
             
             # Get logits for the next token (last position)
-            # Convert to numpy for easier indexing
+            # Convert to numpy - original approach but with immediate cleanup
             logits_np = logits.to_numpy()
             batch_size, seq_len, vocab_size = logits_np.shape
             
-            # Extract last token logits
-            next_token_logits = logits_np[0, seq_len - 1, :]  # (vocab_size,)
+            # Extract last token logits and immediately delete full array to free memory
+            next_token_logits = logits_np[0, seq_len - 1, :].copy()  # (vocab_size,)
+            del logits_np  # Free memory immediately after extracting what we need
             
             # Take argmax to get the next token ID
             gen_id = int(np.argmax(next_token_logits))
