@@ -231,6 +231,8 @@ class SentenceSentimentTrain:
                 # 2. Set requires_grad=True for x and y
                 x.requires_grad_(True)
                 y.requires_grad_(True)
+
+                optim.zero_grad()
                 
                 # 3. Get the model output (as out)
                 out = model.forward(x)

@@ -138,31 +138,19 @@ def backpropagate(variable: Variable, deriv: Any) -> None:
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
     # BEGIN ASSIGN1_1
-    # Get the topological order of variables
-    ordered_vars = topological_sort(variable)
-    
-    # Dictionary to store accumulated gradients for each variable
-    gradients = {}
-    gradients[variable.unique_id] = deriv
-    
-    # Process variables in topological order (output to inputs)
-    for var in ordered_vars:
-        # Only process if we have a gradient for this variable
-        if var.unique_id in gradients:
-            current_grad = gradients[var.unique_id]
-            
-            # If it's a leaf node, accumulate the gradient
-            if var.is_leaf():
-                var.accumulate_derivative(current_grad)
-            else:
-                # Only apply chain rule for non-leaf variables
-                for parent, parent_grad in var.chain_rule(current_grad):
-                    # Accumulate gradients for parent variables
-                    if parent.unique_id not in gradients:
-                        gradients[parent.unique_id] = parent_grad
-                    else:
-                        # Add to existing gradient (for variables with multiple children)
-                        gradients[parent.unique_id] = gradients[parent.unique_id] + parent_grad
+    topological_order = topological_sort(variable)
+
+    derivates = {node.unique_id: 0 for node in topological_order}
+    derivates[variable.unique_id] = deriv
+
+    for node in topological_order:
+        current_deriv = derivates[node.unique_id]
+        if node.is_leaf():
+            node.accumulate_derivative(current_deriv)
+            continue
+        for parent, parent_derivative in node.chain_rule(current_deriv):
+            if not parent.is_constant():
+                derivates[parent.unique_id] += parent_derivative
     # END ASSIGN1_1
 
 
