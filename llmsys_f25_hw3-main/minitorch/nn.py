@@ -106,7 +106,7 @@ def softmax(input: Tensor, dim: int) -> Tensor:
     Returns:
         softmax tensor
     """
-    e = (input - Max.apply(input, tensor([dim]))).exp()
+    e = (input - Max.apply(input, tensor([dim], backend=input.backend))).exp()
     partition = e.sum(dim=dim)
     return e / partition
 
@@ -127,7 +127,7 @@ def logsoftmax(input: Tensor, dim: int) -> Tensor:
          log of softmax tensor
     """
     e = input
-    mx = Max.apply(e, tensor([dim]))
+    mx = Max.apply(e, tensor([dim], backend=input.backend))
     lse = (e - mx).exp().sum(dim=dim).log() + mx
     return e - lse
 
@@ -211,7 +211,10 @@ def logsumexp(input: Tensor, dim: int) -> Tensor:
             NOTE: minitorch functions/tensor functions typically keep dimensions if you provide a dimensions.
     """  
     ### BEGIN ASSIGN3_1
-    raise NotImplementedError
+    # Use logsumexp trick for numerical stability:
+    # log(sum(exp(x))) = max(x) + log(sum(exp(x - max(x))))
+    max_val = max(input, dim)
+    return max_val + (input - max_val).exp().sum(dim=dim).log()
     ### END ASSIGN3_1
 
 
@@ -226,8 +229,11 @@ def softmax_loss(logits: Tensor, target: Tensor) -> Tensor:
     Returns: 
         loss : (minibatch, )
     """
-    result = None
+    batch_size, num_classes = logits.shape
     ### BEGIN ASSIGN3_1
-    raise NotImplementedError
+    # Formula: ℓ(z, y) = log(∑ᵢ exp(zᵢ)) - z_y (3-line solution as mentioned in README)
+    log_sum_exp = logsumexp(logits, dim=1)  # (minibatch, 1)
+    target_logits = (logits * one_hot(target, num_classes)).sum(dim=1)  # (minibatch, 1)
+    result = log_sum_exp - target_logits  # (minibatch, 1)
     ### END ASSIGN3_1
     return result.view(batch_size, )

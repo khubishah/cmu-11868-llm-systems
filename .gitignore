@@ -1,2 +1,17 @@
 .DS_Store
 *.pem
+*/__pycache__/*
+*/.hypothesis/*
+*/.pytest_cache/*
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+minitorch.egg-info/*
+*/minitorch/cuda_kernels/*
+*/venv/*
+*/tests/__pycache__/*

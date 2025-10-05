@@ -301,11 +301,29 @@ def generate(
 
         while len(token_ids) <= model_max_length:
             # BEGIN ASSIGN3_4
-            # TODO
+
             # run the model with current token_ids, and predict the next token (gen_id)
             # hint: obtain the logits of next token, and take the argmax.
-            gen_id = 0
-            raise NotImplementedError("Generation Function Not Implemented Yet")
+            
+            # Convert token_ids to tensor
+            input_tensor = minitorch.tensor_from_numpy(
+                np.array([token_ids]), backend=backend, requires_grad=False
+            )  # Shape: (1, seq_len)
+            
+            # Get model logits for the sequence
+            logits = model(input_tensor)  # Shape: (1, seq_len, vocab_size)
+            
+            # Get logits for the next token (last position)
+            # Convert to numpy - original approach but with immediate cleanup
+            logits_np = logits.to_numpy()
+            batch_size, seq_len, vocab_size = logits_np.shape
+            
+            # Extract last token logits and immediately delete full array to free memory
+            next_token_logits = logits_np[0, seq_len - 1, :].copy()  # (vocab_size,)
+            del logits_np  # Free memory immediately after extracting what we need
+            
+            # Take argmax to get the next token ID
+            gen_id = int(np.argmax(next_token_logits))
             # END ASSIGN3_4
 
             if gen_id == tokenizer.vocab[f'<eos_{tgt_key}>']:

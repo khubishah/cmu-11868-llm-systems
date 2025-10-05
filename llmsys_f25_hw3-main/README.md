@@ -325,3 +325,4 @@ The outputs and BLEU scores will be saved in `./workdir_vocab10000_lr0.02_embd25
 ### Submission
 Please submit the whole `llmsys_s25_hw2` as a zip on Canvas. Your code will be automatically compiled and gra ded with private test cases.
 
+# I had to run huggingface datasets version 2.19.0 to support loading datasets via Python scripts
