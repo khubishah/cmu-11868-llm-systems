@@ -135,8 +135,11 @@ class PowerScalar(Function):
             output : Tensor
                 Tensor containing the result of raising every element of a to scalar.
         """
-        # COPY FROM ASSIGN3
-        raise NotImplementedError
+        ### BEGIN YOUR SOLUTION
+        out = a.f.pow_scalar_zip(a, scalar)
+        ctx.save_for_backward(a, scalar)
+        return out
+        ### END YOUR SOLUTION
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
@@ -160,10 +163,12 @@ class PowerScalar(Function):
         a, scalar = ctx.saved_values
         grad_a    = None
         
-        # COPY FROM ASSIGN3
-        raise NotImplementedError
+        ### BEGIN YOUR SOLUTION
+        grad_a = grad_output * (scalar * (a ** (scalar - 1)))
+        ### END YOUR SOLUTION
 
         return (grad_a, 0.0)
+
 
 
 class Tanh(Function):
@@ -383,13 +388,26 @@ class Attn_Softmax(Function):
     @staticmethod
     def forward(ctx: Context, inp: Tensor, mask: Tensor) -> Tensor:
       #   BEGIN ASSIGN4_1_1
-      raise NotImplementedError("Need to implement for Assignment 3")
+      # Call the CUDA kernel for attention softmax
+      result = inp.f.attn_softmax_fw(inp, mask)
+      
+      # Save input, mask, and result for backward pass
+      ctx.save_for_backward(inp, mask, result)
+      
+      return result
       #   END ASSIGN4_1_1
 
     @staticmethod
-    def backward(ctx: Context, out_grad: Tensor) -> Tensor:
+    def backward(ctx: Context, out_grad: Tensor) -> Tuple[Tensor, float]:
       #   BEGIN ASSIGN4_1_2
-      raise NotImplementedError("Need to implement for Assignment 3")
+      # Get saved values from forward pass
+      inp, mask, soft_inp = ctx.saved_values
+      
+      # Call the CUDA kernel for attention softmax backward
+      grad_inp = out_grad.f.attn_softmax_bw(out_grad, soft_inp)
+      
+      # Return gradients for inp and mask (mask gradient is 0)
+      return grad_inp, 0.0
       #   END ASSIGN4_1_2
 
 
@@ -397,13 +415,26 @@ class LayerNorm(Function):
     @staticmethod
     def forward(ctx: Context, inp: Tensor, gamma: Tensor, beta: Tensor) -> Tensor:
       #   BEGIN ASSIGN4_2_1
-      raise NotImplementedError("Need to implement for Assignment 3")
+      # Call the CUDA kernel for LayerNorm forward
+      ln_res, vars_tensor, means_tensor = inp.f.layernorm_fw(inp, gamma, beta)
+      
+      # Save tensors for backward pass
+      ctx.save_for_backward(inp, gamma, beta, vars_tensor, means_tensor)
+      
+      return ln_res
       #   END ASSIGN4_2_1
 
     @staticmethod
-    def backward(ctx: Context, out_grad: Tensor) -> Tensor:
+    def backward(ctx: Context, out_grad: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
       #   BEGIN ASSIGN4_2_2
-      raise NotImplementedError("Need to implement for Assignment 3")
+      # Get saved tensors from forward pass
+      inp, gamma, beta, vars_tensor, means_tensor = ctx.saved_values
+      
+      # Call the CUDA kernel for LayerNorm backward
+      gamma_grad, beta_grad, inp_grad = inp.f.layernorm_bw(out_grad, inp, gamma, beta, vars_tensor, means_tensor)
+      
+      # Return gradients for inp, gamma, and beta
+      return inp_grad, gamma_grad, beta_grad
       #   END ASSIGN4_2_2
 
 

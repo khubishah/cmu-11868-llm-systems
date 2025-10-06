@@ -32,9 +32,11 @@ class Embedding(Module):
         self.backend = backend
         self.num_embeddings = num_embeddings # Vocab size
         self.embedding_dim  = embedding_dim  # Embedding Dimension
-        
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        ### BEGIN ASSIGN3_2
+        # Initialize weight matrix from N(0, 1) distribution
+        weight_data = np.random.randn(num_embeddings, embedding_dim).astype(np.float32)
+        self.weights = Parameter(tensor_from_numpy(weight_data, backend=backend))
+        ### END ASSIGN3_2
     
     def forward(self, x: Tensor):
         """Maps word indices to one-hot vectors, and projects to embedding vectors.
@@ -46,9 +48,23 @@ class Embedding(Module):
             output : Tensor of shape (batch_size, seq_len, embedding_dim)
         """
         bs, seq_len = x.shape
+        ### BEGIN ASSIGN3_2
+        # Reshape input to 1D for one_hot conversion
+        x_flat = x.view(bs * seq_len)
         
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        # Convert indices to one-hot vectors
+        # one_hot produces shape (bs * seq_len, num_embeddings)
+        one_hot_flat = one_hot(x_flat, self.num_embeddings)
+        
+        # Project one-hot vectors to embeddings using weight matrix
+        # (bs * seq_len, num_embeddings) @ (num_embeddings, embedding_dim) = (bs * seq_len, embedding_dim)
+        embeddings_flat = one_hot_flat @ self.weights.value
+        
+        # Reshape back to (batch_size, seq_len, embedding_dim)
+        output = embeddings_flat.view(bs, seq_len, self.embedding_dim)
+        
+        return output
+        ### END ASSIGN3_2
 
     
 class Dropout(Module):
@@ -70,8 +86,23 @@ class Dropout(Module):
         Returns: 
             output : Tensor of shape (*)
         """
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        ### BEGIN ASSIGN3_2
+        # If not training, return input unchanged
+        if not self.training:
+            return x
+        
+        # During training, apply dropout
+        if self.p_dropout == 0.0:
+            return x
+        
+        # Use np.random.binomial as specified in README to match autograder seed
+        keep_prob = 1.0 - self.p_dropout
+        mask = np.random.binomial(1, keep_prob, size=x.shape)
+        mask_tensor = tensor_from_numpy(mask.astype(np.float32), backend=x.backend)
+        
+        # Apply mask and scale by 1/(1-p_dropout) to maintain expected value
+        return (x * mask_tensor) / keep_prob
+        ### END ASSIGN3_2
 
 
 class Linear(Module):
@@ -85,27 +116,56 @@ class Linear(Module):
             bias     - If True, then add an additive bias
 
         Attributes:
-            weight - The learnable weights of shape (in_size, out_size) initialized from Uniform(-1/sqrt(1/in_size), 1/sqrt(1/in_size)).
-            bias   - The learnable weights of shape (out_size, ) initialized from Uniform(-1/sqrt(1/in_size), 1/sqrt(1/in_size)).
+            weights - The learnable weights of shape (in_size, out_size) initialized from Uniform(-1/sqrt(in_size), 1/sqrt(in_size)).
+            bias   - The learnable weights of shape (out_size, ) initialized from Uniform(-1/sqrt(in_size), 1/sqrt(in_size)).
         """
         self.out_size = out_size
+        self.in_size = in_size
+        self.use_bias = bias
+        ### BEGIN ASSIGN3_2
+        # Initialize weights with Uniform(-1/sqrt(in_size), 1/sqrt(in_size))
+        bound = 1.0 / (in_size ** 0.5)
+        self.weights = Parameter(2 * bound * rand((in_size, out_size), backend=backend) - bound)
         
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        if bias:
+            # Initialize bias with the same distribution
+            self.bias = Parameter(2 * bound * rand((out_size,), backend=backend) - bound)
+        else:
+            self.bias = None
+        ### END ASSIGN3_2
 
     def forward(self, x: Tensor):
         """Applies a linear transformation to the incoming data.
         
         Args: 
-            x : Tensor of shape (n, in_size)
+            x : Tensor of shape (n, in_size) or (batch_size, seq_len, in_size)
         
         Returns:
-            output : Tensor of shape (n, out_size)
+            output : Tensor of shape (n, out_size) or (batch_size, seq_len, out_size)
         """
-        batch, in_size = x.shape
+        ### BEGIN ASSIGN3_2
+        # Handle both 2D and 3D inputs (for transformer layers)
+        input_shape = x.shape
         
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        if len(input_shape) == 2:
+            # Standard 2D case: (batch, in_size)
+            output = x @ self.weights.value
+        elif len(input_shape) == 3:
+            # 3D case for transformers: (batch_size, seq_len, in_size)
+            batch_size, seq_len, in_size = input_shape
+            # Reshape to 2D, apply linear transformation, then reshape back
+            x_reshaped = x.view(batch_size * seq_len, in_size)
+            output_reshaped = x_reshaped @ self.weights.value
+            output = output_reshaped.view(batch_size, seq_len, self.out_size)
+        else:
+            raise ValueError(f"Linear layer expects 2D or 3D input, got {len(input_shape)}D")
+        
+        # Add bias if present
+        if self.use_bias:
+            output = output + self.bias.value
+            
+        return output
+        ### END ASSIGN3_2
 
 
 class LayerNorm1d(Module):
@@ -123,9 +183,11 @@ class LayerNorm1d(Module):
         """
         self.dim = dim
         self.eps = eps
-        
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        ### BEGIN ASSIGN3_2
+        # Initialize weights to 1 and bias to 0
+        self.weights = Parameter(ones((dim,), backend=backend))
+        self.bias = Parameter(zeros((dim,), backend=backend))
+        ### END ASSIGN3_2
 
     def forward(self, x: Tensor) -> Tensor:
         """Applies Layer Normalization over a mini-batch of inputs. 
@@ -139,6 +201,19 @@ class LayerNorm1d(Module):
             output - Tensor of shape (bs, dim)
         """
         batch, dim = x.shape
+        ### BEGIN ASSIGN3_2
+        # Compute mean and variance along the feature dimension (dim=1)
+        mean = x.mean(dim=1)  # Shape: (batch, 1)
         
-        # COPY FROM ASSIGN2_3
-        raise NotImplementedError
+        # Compute variance: E[(x - mean)^2]
+        variance = ((x - mean) ** 2).mean(dim=1)  # Shape: (batch, 1)
+        
+        # Normalize: (x - mean) / sqrt(variance + eps)
+        normalized = (x - mean) / ((variance + self.eps) ** 0.5)
+        
+        # Apply learnable scale and shift using implicit broadcasting
+        # weights and bias have shape (dim,), normalized has shape (batch, dim)
+        output = normalized * self.weights.value + self.bias.value
+        
+        return output
+        ### END ASSIGN3_2
