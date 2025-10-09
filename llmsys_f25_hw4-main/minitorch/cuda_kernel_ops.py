@@ -52,6 +52,58 @@ fn_map = {
 
 THREADS_PER_BLOCK = 32
 
+# Setup ctypes function signatures once at module load time for performance
+lib_softmax.launch_attn_softmax.argtypes = [
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_bool,
+    ctypes.c_void_p
+]
+lib_softmax.launch_attn_softmax.restype = None
+
+lib_softmax.launch_attn_softmax_bw.argtypes = [
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.c_void_p
+]
+lib_softmax.launch_attn_softmax_bw.restype = None
+
+lib_layernorm.launch_layernorm.argtypes = [
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # ln_res
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # vars
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # means
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # inp
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # scale
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # bias
+    ctypes.c_int,                                                          # batch_size
+    ctypes.c_int,                                                          # hidden_dim
+    ctypes.c_void_p                                                        # stream
+]
+lib_layernorm.launch_layernorm.restype = None
+
+lib_layernorm.launch_layernorm_bw.argtypes = [
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # gamma_grad
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # beta_grad
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # inp_grad
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # out_grad
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # inp
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # gamma
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # beta
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # vars
+    np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # means
+    ctypes.c_int,                                                          # batch_size
+    ctypes.c_int,                                                          # hidden_dim
+    ctypes.c_void_p,                                                       # stream_1
+    ctypes.c_void_p                                                        # stream_2
+]
+lib_layernorm.launch_layernorm_bw.restype = None
+
 class CudaKernelOps(TensorOps):
     @staticmethod
     def map(fn: Callable[[float], float]) -> MapProto:
@@ -386,7 +438,6 @@ class CudaKernelOps(TensorOps):
       # If no gradients needed (e.g., inference or forward-only test), we can modify in-place for speed
       if inp.requires_grad():
         # Training mode: create copy to preserve input (slower but correct for autograd)
-        from .tensor_data import TensorData
         out_data = TensorData(inp._tensor._storage.copy(), inp.shape, inp._tensor.strides)
         out = Tensor(out_data, backend=inp.backend)
       else:
@@ -425,19 +476,7 @@ class CudaKernelOps(TensorOps):
         mask_future = False
         mask_storage = np.zeros(batch_size * to_len, dtype=datatype)
       
-      # Set up ctypes arguments
-      lib_softmax.launch_attn_softmax.argtypes = [
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_bool,
-        ctypes.c_void_p
-      ]
-      lib_softmax.launch_attn_softmax.restype = None
-
+      # Call kernel (argtypes setup done at module load time)
       lib_softmax.launch_attn_softmax(
         out._tensor._storage,
         mask_storage,
@@ -465,27 +504,18 @@ class CudaKernelOps(TensorOps):
       if not soft_inp._tensor.is_contiguous():
         soft_inp = soft_inp.contiguous()
 
-      # CRITICAL: Create output tensor to avoid modifying autograd's gradient
-      # The kernel expects to modify the first argument in-place
-      grad_inp = out_grad.zeros(out_grad.shape)
-      
-      # Copy out_grad data to our new tensor
-      np.copyto(grad_inp._tensor._storage, out_grad._tensor._storage)
+      # CRITICAL: The C function modifies the first argument in-place
+      # Create a copy of out_grad to avoid corrupting autograd's gradient tensor
+      # Direct copy using TensorData for single operation
+      grad_inp = Tensor(
+        TensorData(out_grad._tensor._storage.copy(), out_grad.shape, out_grad._tensor.strides),
+        backend=out_grad.backend
+      )
 
-      # Set up ctypes arguments
-      lib_softmax.launch_attn_softmax_bw.argtypes = [
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
-        ctypes.c_int,
-        ctypes.c_int,
-        ctypes.c_void_p
-      ]
-      lib_softmax.launch_attn_softmax_bw.restype = None
-
-      # Call the kernel - it modifies grad_inp in-place
+      # Call kernel (argtypes setup done at module load time)
       lib_softmax.launch_attn_softmax_bw(
-        grad_inp._tensor._storage,   # Modified in-place by kernel
-        soft_inp._tensor._storage,   # Read-only
+        grad_inp._tensor._storage,
+        soft_inp._tensor._storage,
         rows,
         softmax_len,
         stream
@@ -505,19 +535,7 @@ class CudaKernelOps(TensorOps):
       vars_tensor = inp.zeros((batch_size,))
       means_tensor = inp.zeros((batch_size,))
       
-      lib_layernorm.launch_layernorm.argtypes = [
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # ln_res
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # vars
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # means
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # inp
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # scale
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # bias
-        ctypes.c_int,                                                          # batch_size
-        ctypes.c_int,                                                          # hidden_dim
-        ctypes.c_void_p                                                        # stream
-      ]
-      lib_layernorm.launch_layernorm.restype = None
-
+      # Call kernel (argtypes setup done at module load time)
       lib_layernorm.launch_layernorm(
         ln_res._tensor._storage,
         vars_tensor._tensor._storage,
@@ -545,23 +563,7 @@ class CudaKernelOps(TensorOps):
       beta_grad = beta.zeros(beta.shape)
       inp_grad = inp.zeros(inp.shape)
       
-      lib_layernorm.launch_layernorm_bw.argtypes = [
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # gamma_grad
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # beta_grad
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # inp_grad
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # out_grad
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # inp
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # gamma
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # beta
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # vars
-        np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),  # means
-        ctypes.c_int,                                                          # batch_size
-        ctypes.c_int,                                                          # hidden_dim
-        ctypes.c_void_p,                                                       # stream_1
-        ctypes.c_void_p                                                        # stream_2
-      ]
-      lib_layernorm.launch_layernorm_bw.restype = None
-
+      # Call kernel (argtypes setup done at module load time)
       lib_layernorm.launch_layernorm_bw(
         gamma_grad._tensor._storage,
         beta_grad._tensor._storage,
