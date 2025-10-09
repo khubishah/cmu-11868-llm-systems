@@ -135,11 +135,10 @@ class PowerScalar(Function):
             output : Tensor
                 Tensor containing the result of raising every element of a to scalar.
         """
-        ### BEGIN YOUR SOLUTION
+        # COPY FROM ASSIGN3
         out = a.f.pow_scalar_zip(a, scalar)
         ctx.save_for_backward(a, scalar)
         return out
-        ### END YOUR SOLUTION
 
     @staticmethod
     def backward(ctx: Context, grad_output: Tensor) -> Tuple[Tensor, float]:
@@ -163,12 +162,11 @@ class PowerScalar(Function):
         a, scalar = ctx.saved_values
         grad_a    = None
         
-        ### BEGIN YOUR SOLUTION
+        # COPY FROM ASSIGN3
+        # d/da(a^s) = s * a^(s-1)
         grad_a = grad_output * (scalar * (a ** (scalar - 1)))
-        ### END YOUR SOLUTION
 
         return (grad_a, 0.0)
-
 
 
 class Tanh(Function):

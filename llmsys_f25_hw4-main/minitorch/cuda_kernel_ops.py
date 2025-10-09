@@ -411,6 +411,20 @@ class CudaKernelOps(TensorOps):
       softmax_len = to_len
       stream = torch.cuda.current_stream().cuda_stream
 
+      # CRITICAL: Ensure tensors are contiguous before passing to kernel
+      if not out_grad._tensor.is_contiguous():
+        out_grad = out_grad.contiguous()
+      if not soft_inp._tensor.is_contiguous():
+        soft_inp = soft_inp.contiguous()
+
+      # CRITICAL: Create output tensor to avoid modifying autograd's gradient
+      # The kernel expects to modify the first argument in-place
+      grad_inp = out_grad.zeros(out_grad.shape)
+      
+      # Copy out_grad data to our new tensor
+      grad_inp._tensor._storage[:] = out_grad._tensor._storage[:]
+
+      # Set up ctypes arguments
       lib_softmax.launch_attn_softmax_bw.argtypes = [
         np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
         np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
@@ -420,15 +434,16 @@ class CudaKernelOps(TensorOps):
       ]
       lib_softmax.launch_attn_softmax_bw.restype = None
 
+      # Call the kernel - it modifies grad_inp in-place
       lib_softmax.launch_attn_softmax_bw(
-        out_grad._tensor._storage,
-        soft_inp._tensor._storage,
+        grad_inp._tensor._storage,   # Modified in-place by kernel
+        soft_inp._tensor._storage,   # Read-only
         rows,
         softmax_len,
         stream
       )
 
-      return out_grad
+      return grad_inp
       #   END ASSIGN4_1_2
 
     @staticmethod

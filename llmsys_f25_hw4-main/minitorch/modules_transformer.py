@@ -14,7 +14,7 @@ from .nn import (
     dropout,
     GELU,
 )
-from .tensor_functions import Attn_Softmax, LayerNorm
+from .tensor_functions import LayerNorm
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 datatype = np.float32
@@ -159,7 +159,7 @@ class MultiHeadAttention(Module):
                 mask_2d = mask_4d.view(S, S)  # (S, S)
                 attention_scores = attention_scores + mask_2d
             
-            # Apply softmax: (B, S, S) - Fall back to original for now due to shape mismatch
+            # Apply softmax: (B, S, S)
             softmax_dim = -1
             if softmax_dim < 0:
                 softmax_dim = len(attention_scores.shape) + softmax_dim
@@ -185,7 +185,7 @@ class MultiHeadAttention(Module):
                 mask_3d = mask_4d.view(1, S, S)  # Remove one singleton dimension
                 attention_scores = attention_scores + mask_3d
 
-            # Apply softmax along the last dimension (keys) - Fall back to original for now due to shape mismatch
+            # Apply softmax along the last dimension (keys)
             softmax_dim = -1
             if softmax_dim < 0:
                 softmax_dim = len(attention_scores.shape) + softmax_dim
@@ -298,11 +298,12 @@ class TransformerLayer(Module):
         """
         ### BEGIN ASSIGN3_3
         # Pre-LN architecture components - Use our optimized LayerNorm kernel
-        # Create gamma and beta parameters for our custom LayerNorm
+        # Create gamma (scale) and beta (shift) parameters for our custom LayerNorm
         self.ln_1_gamma = Parameter(tensor([1.0] * n_embd, backend=backend))
         self.ln_1_beta = Parameter(tensor([0.0] * n_embd, backend=backend))
         self.ln_2_gamma = Parameter(tensor([1.0] * n_embd, backend=backend))
         self.ln_2_beta = Parameter(tensor([0.0] * n_embd, backend=backend))
+        self.ln_eps = ln_eps  # Save epsilon for potential use
         
         # Multi-head attention layer
         self.attention = MultiHeadAttention(n_embd, n_head, causal=True, p_dropout=p_dropout, bias=bias, backend=backend)
@@ -409,6 +410,7 @@ class DecoderLM(Module):
         # Create gamma and beta parameters for our custom LayerNorm
         self.ln_gamma = Parameter(tensor([1.0] * n_embd, backend=backend))
         self.ln_beta = Parameter(tensor([0.0] * n_embd, backend=backend))
+        self.ln_eps = ln_eps  # Save epsilon for potential use
         
         # Language model head for vocabulary projection
         self.lm_head = Linear(n_embd, n_vocab, bias, backend)
