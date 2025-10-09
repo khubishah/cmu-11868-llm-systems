@@ -375,9 +375,51 @@ class CudaKernelOps(TensorOps):
     @staticmethod
     def attn_softmax_fw(inp: Tensor, mask: Tensor):
       batch_size, nhead, from_len, to_len = inp.shape
-      is_dec_self_attn = False
       stream = torch.cuda.current_stream().cuda_stream
 
+      # CRITICAL: Ensure input tensor is contiguous
+      if not inp._tensor.is_contiguous():
+        inp = inp.contiguous()
+
+      # CRITICAL: Create output tensor to avoid modifying input in-place
+      # The kernel will write the result to this new tensor
+      out = inp.zeros(inp.shape)
+      # Copy input data to output tensor (kernel expects output to contain input initially)
+      import numpy as np
+      np.copyto(out._tensor._storage, inp._tensor._storage)
+
+      # Detect causal mask: if mask is shape (1, 1, S, S), use mask_future=True
+      # This is the special causal mask from create_causal_mask in MultiHeadAttention
+      mask_future = False
+      mask_for_kernel = None
+      
+      if mask is not None:
+        # Ensure mask is contiguous
+        if not mask._tensor.is_contiguous():
+          mask = mask.contiguous()
+          
+        # Check if this is a causal mask (1, 1, S, S)
+        if len(mask.shape) == 4 and mask.shape[0] == 1 and mask.shape[1] == 1 and mask.shape[2] == mask.shape[3]:
+          # This is a causal mask - use mask_future flag
+          # But still need to pass a valid mask pointer (launch_attn_softmax does cudaMemcpy)
+          # Create a zero mask of shape (batch_size, to_len) which the kernel will ignore
+          mask_future = True
+          mask_for_kernel = inp.zeros((batch_size, to_len))
+        elif len(mask.shape) == 4:
+          # This is a padding mask of shape (batch_size, 1, 1, to_len)
+          # Reshape to (batch_size, to_len) for the kernel
+          mask_future = False
+          mask_for_kernel = mask.contiguous().view(batch_size, to_len)
+        else:
+          # Other mask types - use directly
+          mask_future = False
+          mask_for_kernel = mask
+      else:
+        # No mask provided - create zero mask and don't use mask_future
+        mask_future = False
+        mask_for_kernel = inp.zeros((batch_size, to_len))
+      
+      # Set up ctypes arguments
       lib_softmax.launch_attn_softmax.argtypes = [
         np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
         np.ctypeslib.ndpointer(dtype=datatype, ndim=1, flags='C_CONTIGUOUS'),
@@ -391,17 +433,17 @@ class CudaKernelOps(TensorOps):
       lib_softmax.launch_attn_softmax.restype = None
 
       lib_softmax.launch_attn_softmax(
-        inp._tensor._storage,
-        mask._tensor._storage,
+        out._tensor._storage,
+        mask_for_kernel._tensor._storage,
         batch_size,
         nhead,
         from_len,
         to_len,
-        is_dec_self_attn,
+        mask_future,
         stream
       ) 
 
-      return inp
+      return out
 
     @staticmethod
     def attn_softmax_bw(out_grad: Tensor, soft_inp: Tensor):
@@ -422,7 +464,7 @@ class CudaKernelOps(TensorOps):
       grad_inp = out_grad.zeros(out_grad.shape)
       
       # Copy out_grad data to our new tensor
-      grad_inp._tensor._storage[:] = out_grad._tensor._storage[:]
+      np.copyto(grad_inp._tensor._storage, out_grad._tensor._storage)
 
       # Set up ctypes arguments
       lib_softmax.launch_attn_softmax_bw.argtypes = [

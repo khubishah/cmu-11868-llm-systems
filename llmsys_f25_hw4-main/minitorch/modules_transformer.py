@@ -14,7 +14,7 @@ from .nn import (
     dropout,
     GELU,
 )
-from .tensor_functions import LayerNorm
+from .tensor_functions import LayerNorm, Attn_Softmax
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 datatype = np.float32
@@ -152,18 +152,28 @@ class MultiHeadAttention(Module):
             attention_scores = q_2d @ kT_2d
             attention_scores = attention_scores / (Dh ** 0.5)
             
-            # Apply causal mask if enabled
+            # Apply causal mask and fused softmax if enabled
             if self.causal:
-                # Create simple 2D mask
-                mask_4d = self.create_causal_mask(S)  # (1, 1, S, S)
-                mask_2d = mask_4d.view(S, S)  # (S, S)
-                attention_scores = attention_scores + mask_2d
-            
-            # Apply softmax: (B, S, S)
-            softmax_dim = -1
-            if softmax_dim < 0:
-                softmax_dim = len(attention_scores.shape) + softmax_dim
-            attention_probs = softmax(attention_scores, dim=softmax_dim)
+                # Create causal mask (1, 1, S, S) - this will be detected by attn_softmax_fw
+                causal_mask = self.create_causal_mask(S)  # (1, 1, S, S)
+                
+                # Reshape attention_scores to 4D for fused softmax: (B, S, S) -> (B, 1, S, S)
+                attention_scores_4d = attention_scores.contiguous().view(B, 1, S, S)
+                
+                # Apply fused softmax with causal mask
+                attention_probs_4d = Attn_Softmax.apply(attention_scores_4d, causal_mask)
+                
+                # Reshape back to 3D: (B, 1, S, S) -> (B, S, S)
+                attention_probs = attention_probs_4d.contiguous().view(B, S, S)
+            else:
+                # No causal mask - create zero mask of shape (B, 1, 1, S) for padding mask support
+                # This ensures the kernel doesn't use mask_future flag
+                zero_mask = attention_scores.zeros((B, 1, 1, S))
+                
+                # Reshape attention_scores to 4D and apply fused softmax
+                attention_scores_4d = attention_scores.contiguous().view(B, 1, S, S)
+                attention_probs_4d = Attn_Softmax.apply(attention_scores_4d, zero_mask)
+                attention_probs = attention_probs_4d.contiguous().view(B, S, S)
             
             # Apply to values: (B, S, Dh)
             result = attention_probs @ v_2d
@@ -179,17 +189,28 @@ class MultiHeadAttention(Module):
             attention_scores = q_flat @ kT_flat
             attention_scores = attention_scores / (Dh ** 0.5)
 
-            # Apply causal mask if enabled
+            # Apply causal mask and fused softmax if enabled
             if self.causal:
-                mask_4d = self.create_causal_mask(S)  # (1, 1, S, S)
-                mask_3d = mask_4d.view(1, S, S)  # Remove one singleton dimension
-                attention_scores = attention_scores + mask_3d
-
-            # Apply softmax along the last dimension (keys)
-            softmax_dim = -1
-            if softmax_dim < 0:
-                softmax_dim = len(attention_scores.shape) + softmax_dim
-            attention_probs = softmax(attention_scores, dim=softmax_dim)
+                # Create causal mask (1, 1, S, S) - this will be detected by attn_softmax_fw
+                causal_mask = self.create_causal_mask(S)  # (1, 1, S, S)
+                
+                # Reshape attention_scores to 4D for fused softmax: (B*H, S, S) -> (B, H, S, S)
+                attention_scores_4d = attention_scores.contiguous().view(B, H, S, S)
+                
+                # Apply fused softmax with causal mask
+                attention_probs_4d = Attn_Softmax.apply(attention_scores_4d, causal_mask)
+                
+                # Reshape back to 3D: (B, H, S, S) -> (B*H, S, S)
+                attention_probs = attention_probs_4d.contiguous().view(B * H, S, S)
+            else:
+                # No causal mask - create zero mask of shape (B, 1, 1, S) for padding mask support
+                # This ensures the kernel doesn't use mask_future flag
+                zero_mask = attention_scores.zeros((B, 1, 1, S))
+                
+                # Reshape attention_scores to 4D and apply fused softmax
+                attention_scores_4d = attention_scores.contiguous().view(B, H, S, S)
+                attention_probs_4d = Attn_Softmax.apply(attention_scores_4d, zero_mask)
+                attention_probs = attention_probs_4d.contiguous().view(B * H, S, S)
 
             # Apply attention to values: (B*H, S, Dh)
             ctx_flat = attention_probs @ v_flat

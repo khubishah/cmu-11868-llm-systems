@@ -350,54 +350,65 @@ void launch_attn_softmax_bw(float *out_grad,
   dim3 block_dim(WARP_SIZE, warps_per_block);
   // BEGIN ASSIGN4_1_2
   
-  // IMPORTANT: No memory allocation needed!
-  // out_grad and soft_inp are already GPU pointers from minitorch
-  // The kernel modifies out_grad in-place
+  // Allocate device memory and copy from host
+  int float_size = sizeof(float);
+  int grad_size = rows * softmax_len * float_size;
+  
+  float *d_out_grad, *d_soft_inp;
+  cudaMalloc((void **)&d_out_grad, grad_size);
+  cudaMalloc((void **)&d_soft_inp, grad_size);
+  
+  cudaMemcpy(d_out_grad, out_grad, grad_size, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_soft_inp, soft_inp, grad_size, cudaMemcpyHostToDevice);
   
   // Launch kernel with template parameter based on softmax_len
   // ITERATIONS = ceil(softmax_len / WARP_SIZE)
   if (softmax_len <= 32) {
     ker_attn_softmax_bw<float, 1><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 64) {
     ker_attn_softmax_bw<float, 2><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 128) {
     ker_attn_softmax_bw<float, 4><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 256) {
     ker_attn_softmax_bw<float, 8><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 384) {
     ker_attn_softmax_bw<float, 12><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 512) {
     ker_attn_softmax_bw<float, 16><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 768) {
     ker_attn_softmax_bw<float, 24><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 1024) {
     ker_attn_softmax_bw<float, 32><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else if (softmax_len <= 2048) {
     ker_attn_softmax_bw<float, 64><<<grid_dim, block_dim, 0, stream>>>(
-        out_grad, soft_inp, softmax_len);
+        d_out_grad, d_soft_inp, softmax_len);
   } else {
     throw std::runtime_error(
         "Sequence length greater than 2048 is currently not supported");
   }
   
-  // No memory copies needed - result is already in GPU memory (out_grad)
-  // No synchronization needed - stream handles async execution
+  // Copy result back to host
+  cudaMemcpy(out_grad, d_out_grad, grad_size, cudaMemcpyDeviceToHost);
+  cudaDeviceSynchronize();
   
   // Check CUDA execution
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
     fprintf(stderr, "launch_attn_softmax_bw Error: %s\n", cudaGetErrorString(err));
+    exit(EXIT_FAILURE);
   }
 
-  // No memory cleanup needed - we didn't allocate anything!
+  // Free device memory
+  cudaFree(d_out_grad);
+  cudaFree(d_soft_inp);
   // END ASSIGN4_1_2
 
 }}
