@@ -207,6 +207,41 @@ def test_transformer_layer(batch_size, seq_len, n_embd, num_heads, causal, p_dro
     # )
 
 
+@pytest.mark.a2_4
+@pytest.mark.parametrize("batch_size", [128])
+@pytest.mark.parametrize("seq_len", [40])
+@pytest.mark.parametrize("n_vocab", [1000])
+@pytest.mark.parametrize("n_embd",  [256])
+@pytest.mark.parametrize("n_head",  [8])
+@pytest.mark.parametrize("n_positions", [40])
+@pytest.mark.parametrize("dropout", [0.0])
+@pytest.mark.parametrize("ln_eps", [1e-5])
+@pytest.mark.parametrize("bias", [True])
+@pytest.mark.parametrize("backend", _BACKENDS, ids=["CudaKernelOps"])
+def test_decoder_lm_student(batch_size, seq_len, n_vocab, n_embd, n_head, n_positions, dropout, ln_eps, bias, backend):
+
+    np.random.seed(10)
+    x = np.random.randint(low=0, high=n_vocab, size=(batch_size, seq_len))
+
+    layer = minitorch.DecoderLM(
+        n_vocab=n_vocab, n_embd=n_embd, n_head=n_head, n_positions=n_positions, 
+        p_dropout=dropout, ln_eps=ln_eps, bias=bias, backend=backend)
+
+    result = layer(minitorch.tensor(x.tolist(), backend=backend, requires_grad=True))
+
+    assert result is not None
+    assert not np.isnan(result.to_numpy()).any()
+    assert result.shape == (batch_size, seq_len, n_vocab)
+
+    result.sum().backward()
+
+    assert layer.position_embeddings.weights.value.grad is not None
+    assert layer.token_embeddings.weights.value.grad is not None
+    assert not np.isnan(layer.position_embeddings.weights.value.grad.to_numpy()).any()
+    assert not np.isnan(layer.token_embeddings.weights.value.grad.to_numpy()).any()
+
+
+
 @pytest.mark.a2_3
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize("seq_len", [5])
@@ -214,20 +249,18 @@ def test_transformer_layer(batch_size, seq_len, n_embd, num_heads, causal, p_dro
 @pytest.mark.parametrize("n_embd",  [9])
 @pytest.mark.parametrize("n_head",  [3])
 @pytest.mark.parametrize("n_positions", [10])
-@pytest.mark.parametrize("n_layer", [1])
 @pytest.mark.parametrize("dropout", [0.0])
 @pytest.mark.parametrize("ln_eps", [1e-5])
 @pytest.mark.parametrize("bias", [True])
 @pytest.mark.parametrize("backend", _BACKENDS, ids=["CudaKernelOps"])
-def test_decoder_lm(batch_size, seq_len, n_vocab, n_embd, n_head, n_layer, n_positions, dropout, ln_eps, bias, backend):
+def test_decoder_lm(batch_size, seq_len, n_vocab, n_embd, n_head, n_positions, dropout, ln_eps, bias, backend):
 
     np.random.seed(19943)
 
     x = np.random.randint(low=0, high=n_vocab, size=(batch_size, seq_len))
 
     layer = minitorch.DecoderLM(
-        n_vocab=n_vocab, n_embd=n_embd, n_head=n_head, n_positions=n_positions, 
-        n_layer=n_layer, p_dropout=dropout, ln_eps=ln_eps, bias=bias, backend=backend)
+        n_vocab=n_vocab, n_embd=n_embd, n_head=n_head, n_positions=n_positions, p_dropout=dropout, ln_eps=ln_eps, bias=bias, backend=backend)
 
     result = layer(minitorch.tensor(x.tolist(), backend=backend, requires_grad=True))
 

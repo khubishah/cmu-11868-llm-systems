@@ -358,8 +358,9 @@ void launch_attn_softmax_bw(float *out_grad,
   cudaMalloc((void **)&d_out_grad, grad_size);
   cudaMalloc((void **)&d_soft_inp, grad_size);
   
-  cudaMemcpy(d_out_grad, out_grad, grad_size, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_soft_inp, soft_inp, grad_size, cudaMemcpyHostToDevice);
+  // Use async copies for better performance
+  cudaMemcpyAsync(d_out_grad, out_grad, grad_size, cudaMemcpyHostToDevice, stream);
+  cudaMemcpyAsync(d_soft_inp, soft_inp, grad_size, cudaMemcpyHostToDevice, stream);
   
   // Launch kernel with template parameter based on softmax_len
   // ITERATIONS = ceil(softmax_len / WARP_SIZE)
@@ -395,17 +396,12 @@ void launch_attn_softmax_bw(float *out_grad,
         "Sequence length greater than 2048 is currently not supported");
   }
   
-  // Copy result back to host
-  cudaMemcpy(out_grad, d_out_grad, grad_size, cudaMemcpyDeviceToHost);
-  cudaDeviceSynchronize();
+  // Copy result back to host (async for better performance)
+  cudaMemcpyAsync(out_grad, d_out_grad, grad_size, cudaMemcpyDeviceToHost, stream);
   
-  // Check CUDA execution
-  cudaError_t err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    fprintf(stderr, "launch_attn_softmax_bw Error: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
-
+  // Synchronize to ensure copy completes before freeing memory
+  cudaStreamSynchronize(stream);
+  
   // Free device memory
   cudaFree(d_out_grad);
   cudaFree(d_soft_inp);

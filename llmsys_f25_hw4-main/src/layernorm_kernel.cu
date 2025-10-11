@@ -54,8 +54,11 @@ __global__ void ker_layer_norm(T *ln_res, T *vars, T *means, const T *inp,
   }
 
   // Step 2: Block reduction to compute global sums
-  blockReduce<ReduceType::kSum, 1>(&l_sum);
-  blockReduce<ReduceType::kSum, 1>(&l_sum_of_squares);
+  // Reduce both sums together to avoid race conditions with shared memory
+  float sums[2] = {l_sum, l_sum_of_squares};
+  blockReduce<ReduceType::kSum, 2>(sums);
+  l_sum = sums[0];
+  l_sum_of_squares = sums[1];
   
   // Compute mean and variance (only thread 0 has the correct sums)
   __shared__ float s_mean, s_variance;
@@ -63,7 +66,9 @@ __global__ void ker_layer_norm(T *ln_res, T *vars, T *means, const T *inp,
     int total_elements = hidden_size * 4;  // hidden_size is divided by 4, so multiply back
     s_mean = l_sum / total_elements;
     float mean_of_squares = l_sum_of_squares / total_elements;
-    s_variance = sqrtf(mean_of_squares - s_mean * s_mean + LN_EPSILON);
+    // Ensure variance is non-negative before sqrt to avoid NaN
+    float variance = fmaxf(mean_of_squares - s_mean * s_mean, 0.0f);
+    s_variance = sqrtf(variance + LN_EPSILON);
     
     // Store mean and variance for output
     if (means != nullptr) {
@@ -78,7 +83,9 @@ __global__ void ker_layer_norm(T *ln_res, T *vars, T *means, const T *inp,
   const float4 *scale_f4 = reinterpret_cast<const float4 *>(scale);
   const float4 *bias_f4 = reinterpret_cast<const float4 *>(bias);
   
-  float inv_variance = 1.0f / s_variance;
+  // Ensure s_variance is not too small to avoid Inf/NaN
+  float safe_variance = fmaxf(s_variance, LN_EPSILON);
+  float inv_variance = 1.0f / safe_variance;
   
   for (uint idx = threadIdx.x; idx < hidden_size; idx += blockDim.x) {
     float4 val = inp_f4[idx];
@@ -290,7 +297,9 @@ __global__ void ker_ln_bw_dinp(T *inp_grad, const T *out_grad, const T *inp,
   int batch_idx = blockIdx.x;
   float mean_val = (float)means[batch_idx];
   float var_val = (float)vars[batch_idx];  // This is sqrt(var + epsilon)
-  float inv_var = 1.0f / var_val;
+  // Ensure var_val is not too small to avoid Inf/NaN
+  float safe_var = fmaxf(var_val, LN_EPSILON);
+  float inv_var = 1.0f / safe_var;
   
   // Step 1 & 2: Compute dxhat=dy*w and xhat with float4 for speedup
   const float4 *out_grad_f4 = reinterpret_cast<const float4 *>(out_grad) + batch_idx * hidden_dim;
