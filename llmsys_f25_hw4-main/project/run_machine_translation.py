@@ -430,6 +430,16 @@ def main(
         model_max_length=model_max_length,
         backend=backend)
 
+    # Start timing
+    print("\n" + "="*80)
+    print("TRAINING START")
+    print("="*80)
+    import datetime
+    start_time = time.time()
+    start_datetime = datetime.datetime.now()
+    print(f"Start time: {start_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    print("="*80 + "\n")
+
     for epoch_idx in range(n_epochs):
         desc = f'epoch {epoch_idx} / {n_epochs}'
 
@@ -474,6 +484,32 @@ def main(
         json.dump(
             {'validation_loss': float(validation_loss), **eval_scores},
             open(f'{workdir}/eval_results_epoch{epoch_idx}.json', 'w'))
+
+    # End timing
+    end_time = time.time()
+    end_datetime = datetime.datetime.now()
+    total_time = end_time - start_time
+    
+    print("\n" + "="*80)
+    print("TRAINING COMPLETE")
+    print("="*80)
+    print(f"End time: {end_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Total training time: {total_time:.2f} seconds ({total_time/60:.2f} minutes)")
+    print(f"Time per epoch: {total_time/n_epochs:.2f} seconds")
+    print("="*80 + "\n")
+    
+    # Save timing results
+    timing_results = {
+        'start_time': start_datetime.isoformat(),
+        'end_time': end_datetime.isoformat(),
+        'total_seconds': total_time,
+        'total_minutes': total_time / 60,
+        'seconds_per_epoch': total_time / n_epochs,
+        'n_epochs': n_epochs,
+        'use_fused_kernel': use_fused_kernel
+    }
+    json.dump(timing_results, open(f'{workdir}/timing_results.json', 'w'), indent=4)
+    print(f"Timing results saved to: {workdir}/timing_results.json")
 
 
 if __name__ == '__main__':
