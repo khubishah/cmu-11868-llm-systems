@@ -12,7 +12,6 @@ from transformers import AutoTokenizer
 from tokenizers import ByteLevelBPETokenizer
 
 import minitorch
-from minitorch import DecoderLM
 from minitorch.cuda_kernel_ops import CudaKernelOps
 
 
@@ -31,7 +30,7 @@ def get_dataset(dataset_name, model_max_length):
             - tgt_key (str): Target language key ('en')
     """
     dataset = {
-        split: datasets.load_dataset(dataset_name, split=split)['translation']
+        split: datasets.load_dataset(dataset_name, 'de-en', split=split)['translation']
         for split in ['train', 'validation', 'test']
     }
     src_key, tgt_key = 'de', 'en'
@@ -364,7 +363,8 @@ def main(
     samples_per_epoch=20000,
     n_vocab=10000,
     n_embd=256,
-    seed=11111
+    seed=11111,
+    use_fused_kernel=True
 ):
     """
     Train and evaluate a decoder-only transformer language model.
@@ -379,10 +379,19 @@ def main(
         n_vocab (int): Vocabulary size for tokenizer, default 10000
         n_embd (int): Embedding dimension, default 256
         seed (int): Random seed, default 11111
+        use_fused_kernel (bool): Whether to use fused CUDA kernels (LayerNorm, Attn_Softmax), default True
     """
 
     np.random.seed(seed)
     random.seed(seed)
+
+    # Import appropriate DecoderLM based on use_fused_kernel flag
+    if use_fused_kernel:
+        from minitorch.modules_transformer import DecoderLM
+        print("Using FUSED kernels (LayerNorm + Attn_Softmax)")
+    else:
+        from minitorch.modules_transformer_nofused import DecoderLM
+        print("Using NON-FUSED kernels (standard operations)")
 
     workdir = f'./workdir_vocab{n_vocab}_lr{learning_rate}_embd{n_embd}'
     os.makedirs(workdir, exist_ok=True)
