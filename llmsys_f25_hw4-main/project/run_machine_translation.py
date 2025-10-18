@@ -30,7 +30,7 @@ def get_dataset(dataset_name, model_max_length):
             - tgt_key (str): Target language key ('en')
     """
     dataset = {
-        split: datasets.load_dataset(dataset_name, 'de-en', split=split)['translation']
+        split: datasets.load_dataset(dataset_name, 'de-en', split=split, use_auth_token=True)['translation']
         for split in ['train', 'validation', 'test']
     }
     src_key, tgt_key = 'de', 'en'
@@ -192,7 +192,7 @@ def loss_fn(batch, model):
     return ((loss * label_token_weights).sum() / label_token_weights.sum())
 
 
-def train(model, optimizer, examples, n_samples, collate_fn, batch_size, desc):
+def train(model, optimizer, examples, n_samples, collate_fn, batch_size, desc, max_grad_norm=1.0):
     """
     Train the model on provided examples.
     
@@ -204,6 +204,7 @@ def train(model, optimizer, examples, n_samples, collate_fn, batch_size, desc):
         collate_fn (callable): Function to collate examples into batches
         batch_size (int): Number of examples per batch
         desc (str): Description for progress bar
+        max_grad_norm (float): Maximum gradient norm for clipping, default 1.0
     """
     model.train()
     random.shuffle(examples)
@@ -220,6 +221,21 @@ def train(model, optimizer, examples, n_samples, collate_fn, batch_size, desc):
 
         loss.backward()
         t2 = time.time()
+
+        # Gradient clipping
+        if max_grad_norm > 0:
+            total_norm = 0.0
+            for p in model.parameters():
+                if p.value.grad is not None:
+                    param_norm = (p.value.grad ** 2).sum()
+                    total_norm += param_norm.item()
+            total_norm = total_norm ** 0.5
+            
+            clip_coef = max_grad_norm / (total_norm + 1e-6)
+            if clip_coef < 1:
+                for p in model.parameters():
+                    if p.value.grad is not None:
+                        p.value.grad = p.value.grad * clip_coef
 
         optimizer.step()
         t3 = time.time()
@@ -359,12 +375,13 @@ def main(
     model_max_length=40,
     n_epochs=20,
     batch_size=128,
-    learning_rate=0.02,
+    learning_rate=0.005,
     samples_per_epoch=20000,
     n_vocab=10000,
     n_embd=256,
     seed=11111,
-    use_fused_kernel=True
+    use_fused_kernel=True,
+    max_grad_norm=1.0
 ):
     """
     Train and evaluate a decoder-only transformer language model.
@@ -374,12 +391,13 @@ def main(
         model_max_length (int): Maximum sequence length, default 40
         n_epochs (int): Number of training epochs, default 20
         batch_size (int): Number of examples per batch, default 128
-        learning_rate (float): Learning rate for optimizer, default 0.02
+        learning_rate (float): Learning rate for optimizer, default 0.005
         samples_per_epoch (int): Training samples per epoch, default 20000
         n_vocab (int): Vocabulary size for tokenizer, default 10000
         n_embd (int): Embedding dimension, default 256
         seed (int): Random seed, default 11111
         use_fused_kernel (bool): Whether to use fused CUDA kernels (LayerNorm, Attn_Softmax), default True
+        max_grad_norm (float): Maximum gradient norm for clipping, default 1.0
     """
 
     np.random.seed(seed)
@@ -450,7 +468,8 @@ def main(
             n_samples=samples_per_epoch,
             batch_size=batch_size,
             collate_fn=collate_fn,
-            desc=desc)
+            desc=desc,
+            max_grad_norm=max_grad_norm)
 
         validation_loss = evaluate_loss(
             model=model,
