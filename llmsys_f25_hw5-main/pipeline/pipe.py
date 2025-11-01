@@ -26,7 +26,18 @@ def _clock_cycles(num_batches: int, num_partitions: int) -> Iterable[List[Tuple[
     This function should yield schedules for each clock cycle.
     '''
     # BEGIN ASSIGN5_2_1
-    raise NotImplementedError("Schedule Generation Not Implemented Yet")
+    # Pipeline parallelism: at clock k, process all (i,j) where i+j=k
+    # Total clock cycles needed: num_batches + num_partitions - 1
+    for clock in range(num_batches + num_partitions - 1):
+        schedule = []
+        # For each clock cycle, find all valid (batch_idx, partition_idx) pairs
+        # where batch_idx + partition_idx == clock
+        for partition_idx in range(num_partitions):
+            batch_idx = clock - partition_idx
+            # Check if this is a valid batch index
+            if 0 <= batch_idx < num_batches:
+                schedule.append((batch_idx, partition_idx))
+        yield schedule
     # END ASSIGN5_2_1
 
 class Pipe(nn.Module):
@@ -53,7 +64,24 @@ class Pipe(nn.Module):
         Please note that you should put the result on the last device. Putting the result on the same device as input x will lead to pipeline parallel training failing.
         '''
         # BEGIN ASSIGN5_2_2
-        raise NotImplementedError("Pipeline Parallel Not Implemented Yet")
+        # 1. Split input into microbatches
+        microbatches = list(x.split(self.split_size, dim=0))
+        num_batches = len(microbatches)
+        num_partitions = len(self.partitions)
+        
+        # 2. Generate clock schedule
+        schedules = _clock_cycles(num_batches, num_partitions)
+        
+        # 3. Process microbatches through the pipeline
+        for schedule in schedules:
+            self.compute(microbatches, schedule)
+        
+        # 4. Concatenate results and put on last device
+        result = torch.cat(microbatches, dim=0)
+        last_device = self.devices[-1]
+        result = result.to(last_device)
+        
+        return result
         # END ASSIGN5_2_2
 
     def compute(self, batches, schedule: List[Tuple[int, int]]) -> None:
@@ -69,6 +97,33 @@ class Pipe(nn.Module):
         devices = self.devices
 
         # BEGIN ASSIGN5_2_2
-        raise NotImplementedError("Pipeline Parallel Not Implemented Yet")
+        # Submit all tasks in the schedule to their respective workers
+        for batch_idx, partition_idx in schedule:
+            # Get the microbatch and partition
+            microbatch = batches[batch_idx]
+            partition = partitions[partition_idx]
+            device = devices[partition_idx]
+            
+            # Move microbatch to the correct device and create compute function
+            def compute_fn(mb=microbatch, part=partition, dev=device):
+                mb = mb.to(dev)
+                return part(mb)
+            
+            # Create task and submit to worker
+            task = Task(compute_fn)
+            self.in_queues[partition_idx].put(task)
+        
+        # Retrieve results from workers
+        for batch_idx, partition_idx in schedule:
+            success, data = self.out_queues[partition_idx].get()
+            
+            if not success:
+                # Error occurred, re-raise the exception
+                exc_info = data
+                raise exc_info[1].with_traceback(exc_info[2])
+            
+            # Extract result and store back in batches
+            task, result = data
+            batches[batch_idx] = result
         # END ASSIGN5_2_2
 

@@ -61,8 +61,8 @@ def run_dp(
     n_epochs=10,
     batch_size=128,
     learning_rate=1e-4,
-    pytest_mode=False):
-    workdir = f'./workdir'
+    pytest_mode=False,
+    workdir='./workdir'):
     os.makedirs(workdir, exist_ok=True)
 
     config = AutoConfig.from_pretrained('gpt2')
@@ -190,6 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=128)
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--world_size', type=int, default=2)
+    parser.add_argument('--workdir', type=str, default='./workdir')
     args = parser.parse_args()
     PYTEST = args.pytest
 
@@ -216,7 +217,8 @@ if __name__ == '__main__':
             args.n_epochs,
             args.batch_size,
             args.learning_rate,
-            PYTEST
+            PYTEST,
+            args.workdir
         ))
         p.start()
         processes.append(p)

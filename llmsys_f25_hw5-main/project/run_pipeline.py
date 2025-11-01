@@ -35,7 +35,11 @@ def run_pp(
     learning_rate=1e-4,
     device='cuda',
     model_parallel_mode=None):
-    workdir = f'./workdir'
+    # Create workdir based on model_parallel_mode for better organization
+    if model_parallel_mode is None:
+        workdir = f'./workdir_single'
+    else:
+        workdir = f'./workdir_{model_parallel_mode}'
     os.makedirs(workdir, exist_ok=True)
 
     config = AutoConfig.from_pretrained('gpt2')
@@ -113,6 +117,11 @@ def run_pp(
             print(f'Epoch {epoch_idx}: Training Time = {training_time}, Tokens_per_sec = {avg_tokens_per_sec}')
             total_time.append(training_time)
             total_tokens_per_sec.append(avg_tokens_per_sec)
+            
+            # Save training metrics for plotting
+            json.dump(
+                {'training_time': training_time, 'tokens_per_sec': avg_tokens_per_sec},
+                open(f'{workdir}/results_epoch{epoch_idx}.json', 'w'))
 
             validation_loss = evaluate_loss(
                 model=model,

@@ -1,0 +1,69 @@
+
+
+
+
+
+
+Epoch 0 on Rank 0: Training Time = 26.74671173095703, Tokens_per_sec = 80279.52729505488
+Epoch 0 on Rank 1: Training Time = 26.72851037979126, Tokens_per_sec = 80088.06529958782
+Epoch 0 on Rank 1: Validation Loss = 6.55161839723587
+Epoch 0 on Rank 0: Validation Loss = 6.4764931201934814
+Epoch 0 on Rank 0: {'bleu': 1.5309250971245134}
+Epoch 0 on Rank 1: {'bleu': 0.050292541091098236}
+Epoch 1 on Rank 1: Training Time = 25.44242000579834, Tokens_per_sec = 81792.2251305016
+Epoch 1 on Rank 0: Training Time = 108.84558463096619, Tokens_per_sec = 82007.97527677336
+Epoch 1 on Rank 1: Validation Loss = 6.021059215068817
+Epoch 1 on Rank 0: Validation Loss = 5.869457244873047
+Epoch 1 on Rank 0: {'bleu': 2.9308549361200606}
+Epoch 1 on Rank 1: {'bleu': 0.7539996556096051}
+Epoch 2 on Rank 0: Training Time = 43.31507658958435, Tokens_per_sec = 81978.87116117222
+Epoch 2 on Rank 1: Training Time = 25.472741842269897, Tokens_per_sec = 81724.12406916237
+Epoch 2 on Rank 1: Validation Loss = 5.752374112606049
+Epoch 2 on Rank 0: Validation Loss = 5.670497715473175
+Epoch 2 on Rank 1: {'bleu': 2.031607793988968}
+Epoch 2 on Rank 0: {'bleu': 1.282009917604823}
+Epoch 3 on Rank 0: Training Time = 25.488304376602173, Tokens_per_sec = 81862.4463492683
+Epoch 3 on Rank 1: Training Time = 29.17107057571411, Tokens_per_sec = 81691.33061828185
+Epoch 3 on Rank 1: Validation Loss = 5.660104870796204
+Epoch 3 on Rank 0: Validation Loss = 5.635935962200165
+Epoch 3 on Rank 1: {'bleu': 3.321263161017076}
+Epoch 3 on Rank 0: {'bleu': 3.915482966481587}
+Epoch 4 on Rank 0: Training Time = 25.499937057495117, Tokens_per_sec = 81915.75516573933
+Epoch 4 on Rank 1: Training Time = 47.64525747299194, Tokens_per_sec = 81737.88021368413
+Epoch 4 on Rank 1: Validation Loss = 5.4751134514808655
+Epoch 4 on Rank 0: Validation Loss = 5.723854899406433
+Epoch 4 on Rank 0: {'bleu': 1.982791642375399}
+Epoch 4 on Rank 1: {'bleu': 3.2766252741984703}
+Epoch 5 on Rank 0: Training Time = 32.69469952583313, Tokens_per_sec = 81898.37555958497
+Epoch 5 on Rank 1: Training Time = 25.492846488952637, Tokens_per_sec = 81656.24994859062
+Epoch 5 on Rank 1: Validation Loss = 5.465881407260895
+Epoch 5 on Rank 0: Validation Loss = 5.426327049732208
+Epoch 5 on Rank 1: {'bleu': 2.8465756650493166}
+Epoch 5 on Rank 0: {'bleu': 4.492541936964086}
+Epoch 6 on Rank 0: Training Time = 25.487629652023315, Tokens_per_sec = 81912.24050541605
+Epoch 6 on Rank 1: Training Time = 30.272252559661865, Tokens_per_sec = 81776.32672057634
+Epoch 6 on Rank 1: Validation Loss = 5.537105560302734
+Epoch 6 on Rank 0: Validation Loss = 5.445635378360748
+Epoch 6 on Rank 1: {'bleu': 3.146204506577434}
+Epoch 6 on Rank 0: {'bleu': 5.364419782732692}
+Epoch 7 on Rank 0: Training Time = 25.505122661590576, Tokens_per_sec = 81934.76929523928
+Epoch 7 on Rank 1: Training Time = 44.872414112091064, Tokens_per_sec = 81638.51652883507
+Epoch 7 on Rank 1: Validation Loss = 5.454026281833649
+Epoch 7 on Rank 0: Validation Loss = 5.411715745925903
+Epoch 7 on Rank 0: {'bleu': 4.705328317347683}
+Epoch 7 on Rank 1: {'bleu': 4.0953978699146}
+Epoch 8 on Rank 1: Training Time = 25.495854377746582, Tokens_per_sec = 81675.87529551808
+Epoch 8 on Rank 0: Training Time = 33.54210090637207, Tokens_per_sec = 81946.4851434633
+Epoch 8 on Rank 1: Validation Loss = 5.396165430545807
+Epoch 8 on Rank 0: Validation Loss = 5.441345989704132
+Epoch 8 on Rank 1: {'bleu': 4.10789017899506}
+Epoch 8 on Rank 0: {'bleu': 4.311116509599353}
+Epoch 9 on Rank 0: Training Time = 25.525496006011963, Tokens_per_sec = 81930.09998225715
+Epoch 9 on Rank 1: Training Time = 28.069438934326172, Tokens_per_sec = 81702.9373073313
+Epoch 9 on Rank 1: Validation Loss = 5.37708705663681
+Epoch 9 on Rank 0: Validation Loss = 5.514263391494751
+Epoch 9 on Rank 1: {'bleu': 4.529354971496461}
+Rank 1 training time: avg:30.866280674934387, std:7.887329769516843,         tokens_per_second: avg: 81548.35311320692, std:488.9860827742578
+Epoch 9 on Rank 0: {'bleu': 4.800891232026917}
+Rank 0 training time: avg:37.26506631374359, std:24.49018154731182,         tokens_per_second: avg: 81766.65457339688, std:497.20094851757784
+2-GPU training completed!

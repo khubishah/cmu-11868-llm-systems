@@ -1,0 +1,65 @@
+
+
+
+Epoch 0 on Rank 0: Training Time = 48.281245708465576, Tokens_per_sec = 86897.89168987297
+Epoch 0 on Rank 0: Validation Loss = 5.96201092004776
+Epoch 0 on Rank 0: {'bleu': 0.6921998221966965}
+Epoch 1 on Rank 0: Training Time = 46.92973613739014, Tokens_per_sec = 87764.16958296804
+Epoch 1 on Rank 0: Validation Loss = 5.502307951450348
+Epoch 1 on Rank 0: {'bleu': 1.6692193345597712}
+Epoch 2 on Rank 0: Training Time = 46.97630596160889, Tokens_per_sec = 87614.10300421123
+Epoch 2 on Rank 0: Validation Loss = 5.369682312011719
+Epoch 2 on Rank 0: {'bleu': 2.9445906879981485}
+Epoch 3 on Rank 0: Training Time = 46.970067739486694, Tokens_per_sec = 87686.12651611018
+Epoch 3 on Rank 0: Validation Loss = 5.177928954362869
+Epoch 3 on Rank 0: {'bleu': 3.844925328385882}
+Epoch 4 on Rank 0: Training Time = 46.31853127479553, Tokens_per_sec = 88199.03192670026
+Epoch 4 on Rank 0: Validation Loss = 5.097727805376053
+Epoch 4 on Rank 0: {'bleu': 3.897527632721902}
+Epoch 5 on Rank 0: Training Time = 47.42171025276184, Tokens_per_sec = 87238.42554949281
+Epoch 5 on Rank 0: Validation Loss = 5.107170015573502
+Epoch 5 on Rank 0: {'bleu': 3.290609145666108}
+Epoch 6 on Rank 0: Training Time = 47.48942160606384, Tokens_per_sec = 87085.63229042382
+Epoch 6 on Rank 0: Validation Loss = 5.228151768445969
+Epoch 6 on Rank 0: {'bleu': 4.186229510074499}
+Epoch 7 on Rank 0: Training Time = 47.1571900844574, Tokens_per_sec = 87534.92696767101
+Epoch 7 on Rank 0: Validation Loss = 5.170034795999527
+Epoch 7 on Rank 0: {'bleu': 5.160662347763033}
+Epoch 8 on Rank 0: Training Time = 47.10024547576904, Tokens_per_sec = 87475.90242561697
+Epoch 8 on Rank 0: Validation Loss = 5.1717303693294525
+Epoch 8 on Rank 0: {'bleu': 5.1429221145843895}
+Epoch 9 on Rank 0: Training Time = 46.96741580963135, Tokens_per_sec = 87692.92214116997
+Epoch 9 on Rank 0: Validation Loss = 5.272257745265961
+Epoch 9 on Rank 0: {'bleu': 3.3438127305777234}
+Epoch 10 on Rank 0: Training Time = 46.93420886993408, Tokens_per_sec = 87636.24005041299
+Epoch 10 on Rank 0: Validation Loss = 5.346060395240784
+Epoch 10 on Rank 0: {'bleu': 4.773448168873948}
+Epoch 11 on Rank 0: Training Time = 47.20860719680786, Tokens_per_sec = 87488.02812219385
+Epoch 11 on Rank 0: Validation Loss = 5.399247854948044
+Epoch 11 on Rank 0: {'bleu': 5.008214090440996}
+Epoch 12 on Rank 0: Training Time = 47.11906099319458, Tokens_per_sec = 87457.59626982006
+Epoch 12 on Rank 0: Validation Loss = 5.488119661808014
+Epoch 12 on Rank 0: {'bleu': 5.211495649065629}
+Epoch 13 on Rank 0: Training Time = 47.13331985473633, Tokens_per_sec = 87665.36843301887
+Epoch 13 on Rank 0: Validation Loss = 5.553610622882843
+Epoch 13 on Rank 0: {'bleu': 4.844224370356119}
+Epoch 14 on Rank 0: Training Time = 46.988178968429565, Tokens_per_sec = 87675.20276590713
+Epoch 14 on Rank 0: Validation Loss = 5.576999813318253
+Epoch 14 on Rank 0: {'bleu': 3.099081702277535}
+Epoch 15 on Rank 0: Training Time = 46.900548219680786, Tokens_per_sec = 87732.90492696564
+Epoch 15 on Rank 0: Validation Loss = 5.705280601978302
+Epoch 15 on Rank 0: {'bleu': 4.377322217630527}
+Epoch 16 on Rank 0: Training Time = 47.0723557472229, Tokens_per_sec = 87634.27773710748
+Epoch 16 on Rank 0: Validation Loss = 5.7200596034526825
+Epoch 16 on Rank 0: {'bleu': 4.5772999882105925}
+Epoch 17 on Rank 0: Training Time = 46.95484900474548, Tokens_per_sec = 87715.86072089888
+Epoch 17 on Rank 0: Validation Loss = 5.773871600627899
+Epoch 17 on Rank 0: {'bleu': 4.329093602802814}
+Epoch 18 on Rank 0: Training Time = 47.139140367507935, Tokens_per_sec = 87648.95248070442
+Epoch 18 on Rank 0: Validation Loss = 5.857389390468597
+Epoch 18 on Rank 0: {'bleu': 4.835792166109472}
+Epoch 19 on Rank 0: Training Time = 47.046743631362915, Tokens_per_sec = 87658.26841529224
+Epoch 19 on Rank 0: Validation Loss = 5.903653293848038
+Epoch 19 on Rank 0: {'bleu': 4.814194275388887}
+Rank 0 training time: avg:47.10544414520264, std:0.350845575224321,         tokens_per_second: avg: 87575.09160082796, std:262.6448968446102
+Single GPU training completed!

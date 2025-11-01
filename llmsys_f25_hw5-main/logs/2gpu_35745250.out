@@ -1,0 +1,129 @@
+
+
+
+
+
+
+Epoch 0 on Rank 0: Training Time = 26.35874366760254, Tokens_per_sec = 79357.37475557544
+Epoch 0 on Rank 1: Training Time = 26.355744123458862, Tokens_per_sec = 80477.93702499362
+Epoch 0 on Rank 1: Validation Loss = 6.463198661804199
+Epoch 0 on Rank 0: Validation Loss = 6.446109592914581
+Epoch 0 on Rank 0: {'bleu': 1.793069073139063}
+Epoch 0 on Rank 1: {'bleu': 1.1935136259404784}
+Epoch 1 on Rank 1: Training Time = 25.524927139282227, Tokens_per_sec = 82021.60317504944
+Epoch 1 on Rank 0: Training Time = 42.79424166679382, Tokens_per_sec = 80877.02638448606
+Epoch 1 on Rank 1: Validation Loss = 5.834837079048157
+Epoch 1 on Rank 0: Validation Loss = 5.803514361381531
+Epoch 1 on Rank 1: {'bleu': 2.3201628500263123}
+Epoch 1 on Rank 0: {'bleu': 2.0661910341395933}
+Epoch 2 on Rank 0: Training Time = 25.529592514038086, Tokens_per_sec = 80791.85723771702
+Epoch 2 on Rank 1: Training Time = 27.93282127380371, Tokens_per_sec = 82088.91829026632
+Epoch 2 on Rank 1: Validation Loss = 5.7973214983940125
+Epoch 2 on Rank 0: Validation Loss = 5.628839552402496
+Epoch 2 on Rank 1: {'bleu': 2.115114906542077}
+Epoch 2 on Rank 0: {'bleu': 4.246827734526408}
+Epoch 3 on Rank 0: Training Time = 25.40827488899231, Tokens_per_sec = 81015.53453793994
+Epoch 3 on Rank 1: Training Time = 48.26650786399841, Tokens_per_sec = 82206.69043902829
+Epoch 3 on Rank 1: Validation Loss = 5.533249378204346
+Epoch 3 on Rank 0: Validation Loss = 5.5735809206962585
+Epoch 3 on Rank 0: {'bleu': 2.0932865709875697}
+Epoch 3 on Rank 1: {'bleu': 4.114579573913779}
+Epoch 4 on Rank 1: Training Time = 25.52501893043518, Tokens_per_sec = 82020.81805023711
+Epoch 4 on Rank 0: Training Time = 32.80821204185486, Tokens_per_sec = 80770.796066129
+Epoch 4 on Rank 1: Validation Loss = 5.427838146686554
+Epoch 4 on Rank 0: Validation Loss = 5.452015995979309
+Epoch 4 on Rank 1: {'bleu': 4.447184450458085}
+Epoch 4 on Rank 0: {'bleu': 4.487062187861114}
+Epoch 5 on Rank 0: Training Time = 25.48910403251648, Tokens_per_sec = 80850.15936723216
+Epoch 5 on Rank 1: Training Time = 26.254692554473877, Tokens_per_sec = 82105.6659412646
+Epoch 5 on Rank 1: Validation Loss = 5.440420985221863
+Epoch 5 on Rank 0: Validation Loss = 5.415260195732117
+Epoch 5 on Rank 1: {'bleu': 3.113937485956979}
+Epoch 5 on Rank 0: {'bleu': 4.938906292696563}
+Epoch 6 on Rank 1: Training Time = 33.321613788604736, Tokens_per_sec = 82052.1936875649
+Epoch 6 on Rank 0: Training Time = 25.49538564682007, Tokens_per_sec = 80812.33785546492
+Epoch 6 on Rank 1: Validation Loss = 5.474714517593384
+Epoch 6 on Rank 0: Validation Loss = 5.41721898317337
+Epoch 6 on Rank 1: {'bleu': 3.2041778002795915}
+Epoch 6 on Rank 0: {'bleu': 4.8908653420964185}
+Epoch 7 on Rank 1: Training Time = 38.07930850982666, Tokens_per_sec = 82103.23364783396
+Epoch 7 on Rank 0: Training Time = 25.49043321609497, Tokens_per_sec = 80826.39781206983
+Epoch 7 on Rank 1: Validation Loss = 5.444407165050507
+Epoch 7 on Rank 0: Validation Loss = 5.416426837444305
+Epoch 7 on Rank 1: {'bleu': 3.3752809857163184}
+Epoch 7 on Rank 0: {'bleu': 4.038011899034344}
+Epoch 8 on Rank 0: Training Time = 25.485002517700195, Tokens_per_sec = 80807.72186437191
+Epoch 8 on Rank 1: Training Time = 32.66574239730835, Tokens_per_sec = 82100.73014464151
+Epoch 8 on Rank 1: Validation Loss = 5.422888278961182
+Epoch 8 on Rank 0: Validation Loss = 5.480679571628571
+Epoch 8 on Rank 0: {'bleu': 4.363087906797033}
+Epoch 8 on Rank 1: {'bleu': 5.1914221430491265}
+Epoch 9 on Rank 0: Training Time = 26.899077653884888, Tokens_per_sec = 80812.06603051319
+Epoch 9 on Rank 1: Training Time = 25.500630855560303, Tokens_per_sec = 82048.70768220718
+Epoch 9 on Rank 1: Validation Loss = 5.478935718536377
+Epoch 9 on Rank 0: Validation Loss = 5.601479530334473
+Epoch 9 on Rank 1: {'bleu': 4.3504551329691425}
+Epoch 9 on Rank 0: {'bleu': 4.74032675606781}
+Epoch 10 on Rank 0: Training Time = 25.53531289100647, Tokens_per_sec = 80781.25065410351
+Epoch 10 on Rank 1: Training Time = 40.536656856536865, Tokens_per_sec = 82029.51711902206
+Epoch 10 on Rank 1: Validation Loss = 5.510481834411621
+Epoch 10 on Rank 0: Validation Loss = 5.52175772190094
+Epoch 10 on Rank 1: {'bleu': 4.625231625677917}
+Epoch 10 on Rank 0: {'bleu': 4.765275977691433}
+Epoch 11 on Rank 1: Training Time = 26.894887685775757, Tokens_per_sec = 82002.03650447937
+Epoch 11 on Rank 0: Training Time = 25.52924370765686, Tokens_per_sec = 80787.87628152539
+Epoch 11 on Rank 1: Validation Loss = 5.668161988258362
+Epoch 11 on Rank 0: Validation Loss = 5.541805744171143
+Epoch 11 on Rank 1: {'bleu': 3.651506685109778}
+Epoch 11 on Rank 0: {'bleu': 4.1021650706089385}
+Epoch 12 on Rank 1: Training Time = 28.593576908111572, Tokens_per_sec = 81969.75742551607
+Epoch 12 on Rank 0: Training Time = 25.55557608604431, Tokens_per_sec = 80691.0434848559
+Epoch 12 on Rank 1: Validation Loss = 5.614601671695709
+Epoch 12 on Rank 0: Validation Loss = 5.608156144618988
+Epoch 12 on Rank 0: {'bleu': 4.6160755150024615}
+Epoch 12 on Rank 1: {'bleu': 5.0842594714621185}
+Epoch 13 on Rank 1: Training Time = 25.52437734603882, Tokens_per_sec = 81983.93496658967
+Epoch 13 on Rank 0: Training Time = 26.124014616012573, Tokens_per_sec = 80748.9128514581
+Epoch 13 on Rank 1: Validation Loss = 5.642930269241333
+Epoch 13 on Rank 0: Validation Loss = 5.6545462012290955
+Epoch 13 on Rank 1: {'bleu': 3.9422112261044213}
+Epoch 13 on Rank 0: {'bleu': 3.822136904876258}
+Epoch 14 on Rank 1: Training Time = 25.840482473373413, Tokens_per_sec = 81934.11777318495
+Epoch 14 on Rank 0: Training Time = 25.52888298034668, Tokens_per_sec = 80719.89360674257
+Epoch 14 on Rank 1: Validation Loss = 5.714430212974548
+Epoch 14 on Rank 0: Validation Loss = 5.708896636962891
+Epoch 14 on Rank 0: {'bleu': 3.5596873147598083}
+Epoch 14 on Rank 1: {'bleu': 3.8348933102722293}
+Epoch 15 on Rank 1: Training Time = 25.516111850738525, Tokens_per_sec = 81964.50404063959
+Epoch 15 on Rank 0: Training Time = 34.85445857048035, Tokens_per_sec = 80773.61647370359
+Epoch 15 on Rank 1: Validation Loss = 5.748182415962219
+Epoch 15 on Rank 0: Validation Loss = 5.819533169269562
+Epoch 15 on Rank 1: {'bleu': 4.1395840814381115}
+Epoch 15 on Rank 0: {'bleu': 3.730627453823593}
+Epoch 16 on Rank 1: Training Time = 26.904802322387695, Tokens_per_sec = 81971.91716498592
+Epoch 16 on Rank 0: Training Time = 25.52870798110962, Tokens_per_sec = 80754.50514848385
+Epoch 16 on Rank 1: Validation Loss = 5.75661438703537
+Epoch 16 on Rank 0: Validation Loss = 5.833715379238129
+Epoch 16 on Rank 1: {'bleu': 3.816989514907592}
+Epoch 16 on Rank 0: {'bleu': 4.387495188765565}
+Epoch 17 on Rank 1: Training Time = 32.6998336315155, Tokens_per_sec = 82002.15456634744
+Epoch 17 on Rank 0: Training Time = 25.533478021621704, Tokens_per_sec = 80750.43154468611
+Epoch 17 on Rank 1: Validation Loss = 5.789319634437561
+Epoch 17 on Rank 0: Validation Loss = 5.927755534648895
+Epoch 17 on Rank 0: {'bleu': 4.117681968421159}
+Epoch 17 on Rank 1: {'bleu': 4.790505743595727}
+Epoch 18 on Rank 1: Training Time = 25.523963689804077, Tokens_per_sec = 82029.29131720832
+Epoch 18 on Rank 0: Training Time = 29.762683391571045, Tokens_per_sec = 80762.9341173162
+Epoch 18 on Rank 1: Validation Loss = 5.858764827251434
+Epoch 18 on Rank 0: Validation Loss = 5.9273072481155396
+Epoch 18 on Rank 0: {'bleu': 4.95098345361008}
+Epoch 18 on Rank 1: {'bleu': 4.803059270488322}
+Epoch 19 on Rank 1: Training Time = 25.533740043640137, Tokens_per_sec = 82069.50712697259
+Epoch 19 on Rank 0: Training Time = 29.37494945526123, Tokens_per_sec = 80790.86958710718
+Epoch 19 on Rank 1: Validation Loss = 5.928601145744324
+Epoch 19 on Rank 0: Validation Loss = 5.968248963356018
+Epoch 19 on Rank 0: {'bleu': 4.982140979436711}
+Rank 0 training time: avg:27.754268777370452, std:4.328162258529015,         tokens_per_second: avg: 80724.1302830741, std:320.2341378822562
+Epoch 19 on Rank 1: {'bleu': 4.862078806894924}
+Rank 1 training time: avg:29.649772012233733, std:6.0968619304264156,         tokens_per_second: avg: 81959.16180440164, std:345.4015582856319
+2-GPU training completed!

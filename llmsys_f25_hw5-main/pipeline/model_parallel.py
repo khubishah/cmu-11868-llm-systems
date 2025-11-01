@@ -40,8 +40,24 @@ class GPT2ModelParallel(GPT2ModelCustom):
         '''
 
         # BEGIN ASSIGN5_2_3
-        pipe = None
-        raise NotImplementedError("Pipeline Parallel Not Implemented Yet")
+        # Enable pipeline parallelism
+        self.pipeline_parallel = True
+        
+        # Parallelize the model first (move blocks to different devices)
+        self.parallelize()
+        
+        # Build nn.Sequential with blocks and ExtractFirstItem modules
+        # GPT2Block returns a tuple, but we only need hidden states (first element)
+        modules = []
+        for i, block in enumerate(self.h):
+            # Wrap block with device info
+            device = _retrieve_device(block)
+            modules.append(WithDevice(block, device))
+            modules.append(WithDevice(ExtractFirstItem(), device))
+        
+        # Create sequential module and wrap with Pipe
+        sequential = nn.Sequential(*modules)
+        pipe = Pipe(sequential, split_size=split_size)
         # END ASSIGN5_2_3
         self.h_pp = pipe
 
