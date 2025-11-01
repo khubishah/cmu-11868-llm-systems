@@ -32,7 +32,13 @@ def average_gradients(model):
     3. Average the gradients over the world_size (total number of devices)
     '''
     # BEGIN ASSIGN5_1_2
-    raise NotImplementedError("Data Parallel Not Implemented Yet")
+    world_size = dist.get_world_size()
+    for param in model.parameters():
+        if param.grad is not None:
+            # Use all_reduce to sum gradients across all processes
+            dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
+            # Average the gradients by dividing by world_size
+            param.grad.data /= world_size
     # END ASSIGN5_1_2
 
 def setup(rank, world_size, backend):
@@ -42,7 +48,9 @@ def setup(rank, world_size, backend):
     2. Use `torch.distributed` to init the process group
     '''
     # BEGIN ASSIGN5_1_2
-    raise NotImplementedError("Data Parallel Not Implemented Yet")
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '11868'
+    dist.init_process_group(backend=backend, rank=rank, world_size=world_size)
     # END ASSIGN5_1_2
 
 
@@ -52,7 +60,8 @@ def run_dp(
     model_max_length=128,
     n_epochs=10,
     batch_size=128,
-    learning_rate=1e-4):
+    learning_rate=1e-4,
+    pytest_mode=False):
     workdir = f'./workdir'
     os.makedirs(workdir, exist_ok=True)
 
@@ -62,7 +71,8 @@ def run_dp(
     ### Distributed Training Setup
     setup(rank, world_size, backend)
     
-    model = GPT2LMHeadModel(config=config).to(rank)
+    device = rank
+    model = GPT2LMHeadModel(config=config).to(device)
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
@@ -116,7 +126,7 @@ def run_dp(
                                     rank=rank,
                                     average_gradients_fn=average_gradients)
         end = time.time()
-        if not PYTEST:
+        if not pytest_mode:
             training_time = end - start
             print(f'Epoch {epoch_idx} on Rank {rank}: Training Time = {training_time}, Tokens_per_sec = {avg_tokens_per_sec}')
             total_time.append(training_time)
@@ -157,7 +167,7 @@ def run_dp(
         else:
             save_grad_weights(model, rank)
             break
-    if not PYTEST:
+    if not pytest_mode:
         # You only get the average training time and tokens_per_second per device
         # To compute the throughput, you need to sum up the tokens_per_sec across all the devices based on epochs
         print(f'Rank {rank} training time: avg:{np.mean(total_time)}, std:{np.std(total_time)}, \
@@ -165,8 +175,15 @@ def run_dp(
 
 
 if __name__ == '__main__':
+    # Set the start method for multiprocessing to 'spawn' for CUDA compatibility
+    import torch.multiprocessing as mp
+    try:
+        mp.set_start_method('spawn', force=True)
+    except RuntimeError:
+        pass
+    
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pytest', type=bool, default=False)
+    parser.add_argument('--pytest', action='store_true', default=False)
     parser.add_argument('--dataset', type=str, default='bbaaaa/iwslt14-de-en-preprocess')
     parser.add_argument('--model_max_length', type=int, default=128)
     parser.add_argument('--n_epochs', type=int, default=10)
@@ -174,10 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--world_size', type=int, default=2)
     args = parser.parse_args()
-    if args.pytest:
-        PYTEST = True
-    else:
-        PYTEST = False
+    PYTEST = args.pytest
 
     processes = []
 
@@ -188,8 +202,26 @@ if __name__ == '__main__':
     2. You should start the processes to work and terminate resources properly
     '''
     # BEGIN ASSIGN5_1_3
-    world_size = None  # TODO: Define the number of GPUs
-    backend = None  # TODO: Define your backend for communication, we suggest using 'nccl'
+    world_size = args.world_size
+    backend = 'nccl'  # Use NCCL backend for GPU communication
     
-    raise NotImplementedError("Data Parallel Not Implemented Yet")
+    # Create a process for each GPU
+    for rank in range(world_size):
+        p = Process(target=run_dp, args=(
+            rank, 
+            world_size, 
+            backend,
+            args.dataset,
+            args.model_max_length,
+            args.n_epochs,
+            args.batch_size,
+            args.learning_rate,
+            PYTEST
+        ))
+        p.start()
+        processes.append(p)
+    
+    # Wait for all processes to complete
+    for p in processes:
+        p.join()
     # END ASSIGN5_1_3
